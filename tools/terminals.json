@@ -1,0 +1,19 @@
+[
+  {
+    "object": "ChangiT1", "code": "SIN", "lat0": 1.3625, "lon0": 103.9905,
+    "outlines": [26561741], "dim": [173010412, 173010413],
+    "rails": {"railway": "monorail"},
+    "gates": {"prefixes": "CD"}
+  },
+  {
+    "object": "HeathrowT5", "code": "LHR", "lat0": 51.4715, "lon0": -0.4830,
+    "outlines": [23231957, 23479613, 23479729], "dim": [],
+    "rails": {"name": "Track Transit System"},
+    "gates": {"prefixes": "ABC", "rename": [["(A10)[a-e]", "\\1"]]}
+  },
+  {
+    "object": "SydneyT1", "code": "SYD", "lat0": -33.9370, "lon0": 151.1675,
+    "outlines": [], "dim": [], "rails": null,
+    "gates": {"maxLon": 151.172, "maxLat": -33.9335, "exclude": ["B"], "rename": [["(26)[A-G]", "\\1"]]}
+  }
+]

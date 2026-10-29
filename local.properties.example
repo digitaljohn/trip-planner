@@ -1,0 +1,24 @@
+# Copy to local.properties (git-ignored) and fill in. Only sdk.dir is required.
+sdk.dir=/path/to/Android/sdk
+
+# Free key from https://aviationstack.com (100 lookups a month). Without it there's no live flight data.
+aviationstack.key=
+
+# Your build's identity. Change applicationId if you install more than one trip side by side.
+trip.applicationId=app.trip.planner
+trip.appName=Trip
+
+# Personal numbers, read in trip/MyTrip.kt with secret("<key>", "placeholder").
+trip.private.booking=
+trip.private.surname=
+trip.private.loyalty.number=
+trip.private.loyalty.points=
+trip.private.loyalty.tierPoints=
+trip.private.loyalty.household=
+trip.private.eticket=
+trip.private.evisa=
+trip.private.hotel.confirmation=
+trip.private.hotel.loyalty=
+trip.private.agency=
+trip.private.esim.order=
+trip.private.esim.iccid=
