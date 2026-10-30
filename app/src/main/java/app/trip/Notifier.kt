@@ -30,8 +30,8 @@ object TripNotifier {
     private const val ID_STATUS = 1
     private const val ID_CHECKIN = 50
     private const val EXTRA_AT = "at"
-    const val ACTION_CHECKED_IN = "dev.jch.sydneytrip.CHECKED_IN"
-    const val ACTION_COPY_MEMBER = "dev.jch.sydneytrip.COPY_MEMBER"
+    const val ACTION_CHECKED_IN = "app.trip.CHECKED_IN"
+    const val ACTION_COPY_MEMBER = "app.trip.COPY_MEMBER"
     const val EXTRA_TODO = "todo"
     private val END: Instant = RET.plusMin(1555)
 
