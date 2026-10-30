@@ -35,10 +35,10 @@ val RET: Instant = Instant.parse("2026-11-14T05:20:00Z")
 
 /** Every flight leg, in order. Live data, gate alerts and check timings all key off these. */
 val segments = listOf(
-    Segment("BA15", "LHR", "SIN", "Singapore", OUT, OUT.plusMin(805), "2026-10-30"),
-    Segment("BA15", "SIN", "SYD", "Sydney", OUT.plusMin(905), OUT.plusMin(1375), "2026-10-31"),
-    Segment("BA16", "SYD", "SIN", "Singapore", RET, RET.plusMin(485), "2026-11-14"),
-    Segment("BA16", "SIN", "LHR", "London", RET.plusMin(585), RET.plusMin(1445), "2026-11-14"),
+    Segment("BA15", "LHR", "SIN", "Singapore", OUT, OUT.plusMin(805), ZoneId.of("Europe/London")),
+    Segment("BA15", "SIN", "SYD", "Sydney", OUT.plusMin(905), OUT.plusMin(1375), ZoneId.of("Asia/Singapore")),
+    Segment("BA16", "SYD", "SIN", "Singapore", RET, RET.plusMin(485), ZoneId.of("Australia/Sydney")),
+    Segment("BA16", "SIN", "LHR", "London", RET.plusMin(585), RET.plusMin(1445), ZoneId.of("Asia/Singapore")),
 )
 
 val airline = Airline(

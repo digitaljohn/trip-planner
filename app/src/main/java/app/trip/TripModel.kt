@@ -17,14 +17,16 @@ class City(val name: String, val code: String, val zone: ZoneId)
 
 /**
  * One flight leg as the live-data service sees it: the flight number, origin and destination
- * airport codes, scheduled take-off and landing, and the take-off date in the origin's local time
- * (Aviationstack reports several days of the same flight number; this picks the right one).
+ * airport codes, scheduled take-off and landing, and the origin airport's time zone.
  */
 class Segment(
     val flight: String, val from: String, val to: String, val toCity: String,
-    val departs: Instant, val arrives: Instant, val departDate: String,
+    val departs: Instant, val arrives: Instant, val fromZone: ZoneId,
 ) {
     val key get() = "$flight:$from"
+
+    /** Local take-off date at the origin: Aviationstack reports several days of one flight number, and this picks ours. */
+    val departDate: String get() = departs.atZone(fromZone).toLocalDate().toString()
 }
 
 class Airline(
