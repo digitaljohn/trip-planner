@@ -46,6 +46,7 @@ object TripNotifier {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         createChannels(nm)
         val now = Instant.now()
+        TripWidget.update(ctx)
         if (!enabled(ctx) || now.isAfter(END)) {
             nm.cancel(ID_STATUS)
             return
@@ -95,12 +96,7 @@ object TripNotifier {
         val seg = w?.let { flights?.seg(it.flight, it.from) }
         val where = if (w?.arriving == true) seg?.belt?.let { "Belt $it" } else seg?.gate?.let { "Gate $it" }
         val next = s.next
-        val chip = when (leg.kind) {
-            Kind.PRE -> "T" + clock(Duration.between(OUT, now).toMinutes())
-            Kind.STAY -> "Day ${Duration.between(leg.from, now).toDays() + 1}"
-            Kind.POST -> "Home"
-            else -> "T" + clock(s.elapsedMin ?: 0)
-        }
+        val chip = s.chip(now)
         val b = Notification.Builder(ctx, CH_STATUS)
             .setSmallIcon(R.drawable.ic_stat)
             .setLargeIcon(Icon.createWithResource(ctx, R.drawable.ic_badge))

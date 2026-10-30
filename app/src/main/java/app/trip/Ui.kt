@@ -75,6 +75,7 @@ fun App() {
     val ctx = LocalContext.current
     val flights = remember { FlightRepo(ctx.applicationContext) }
     val rates = remember { RatesRepo(ctx.applicationContext) }
+    val weather = remember { WeatherRepo(ctx.applicationContext) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var live by remember { mutableStateOf(Instant.now()) }
     var preview by remember { mutableStateOf<Instant?>(null) }
@@ -83,6 +84,7 @@ fun App() {
     }
     LaunchedEffect(tab, live) { flights.reload() }
     LaunchedEffect(Unit) { rates.refresh() }
+    LaunchedEffect(Unit) { weather.refresh() }
     val askNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { TripNotifier.refresh(ctx) }
     LaunchedEffect(Unit) {
         if (ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -121,9 +123,9 @@ fun App() {
             label = "tab",
         ) { t ->
             when (t) {
-                0 -> NowScreen(status, now, preview, flights) { preview = it }
+                0 -> NowScreen(status, now, preview, flights, weather) { preview = it }
                 1 -> FlightsScreen(status, flights)
-                2 -> StayScreen(now)
+                2 -> StayScreen(now, weather)
                 3 -> ToolsScreen(now, rates)
                 else -> InfoScreen(flights)
             }
@@ -214,6 +216,7 @@ fun Context.openSimSettings() {
     listOf(android.provider.Settings.ACTION_MANAGE_ALL_SIM_PROFILES_SETTINGS, android.provider.Settings.ACTION_WIRELESS_SETTINGS)
         .firstOrNull { runCatching { startActivity(Intent(it)) }.isSuccess }
 }
+fun Context.directions(query: String) = open("https://www.google.com/maps/dir/?api=1&travelmode=transit&destination=" + Uri.encode(query))
 fun Context.maps(query: String) = open("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(query))
 fun Context.copy(label: String, value: String) =
     getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, value))
@@ -221,7 +224,7 @@ fun Context.copy(label: String, value: String) =
 // ---- Now ----
 
 @Composable
-fun NowScreen(status: Status, now: Instant, preview: Instant?, flights: FlightRepo, setPreview: (Instant?) -> Unit) {
+fun NowScreen(status: Status, now: Instant, preview: Instant?, flights: FlightRepo, weather: WeatherRepo, setPreview: (Instant?) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val leg = status.leg
     val big = when (leg.kind) {
@@ -238,6 +241,11 @@ fun NowScreen(status: Status, now: Instant, preview: Instant?, flights: FlightRe
     val haptics = rememberHaptics()
     val stop = if (leg.kind == Kind.GROUND || leg.kind == Kind.PRE) stopFor(leg.airport) else null
     val stopSeg = stop?.let { flights.seg(it.watch.flight, it.watch.from) }
+    val checkIn = openCheckIn(ctx, now)
+    val boarding = if (leg.kind != Kind.AIR && checkIn == null) segments.firstOrNull { now.isBefore(it.departs) }
+        ?.takeIf { Duration.between(now, it.departs).toHours() < 24 } else null
+    val arriving = leg.kind == Kind.GROUND && leg.watch?.arriving == true && legs.getOrNull(status.index + 1)?.kind == Kind.STAY
+    val forecast = if (arriving || leg.kind == Kind.STAY) weather.day(now.atZone(away.zone).toLocalDate()) else null
     var mapOpen by rememberSaveable { mutableStateOf(false) }
     if (mapOpen && stop != null) TerminalSheet(stop, stopSeg?.gate) { mapOpen = false }
 
@@ -271,7 +279,10 @@ fun NowScreen(status: Status, now: Instant, preview: Instant?, flights: FlightRe
                 if (status.doDetail.isNotBlank()) Text(status.doDetail, style = MaterialTheme.typography.bodyMedium, color = cs.onPrimaryContainer)
             }
         }
-        openCheckIn(ctx, now)?.let { ci -> item(key = "checkin") { CheckInCard(ci, onDone = { checkedTick++ }) } }
+        checkIn?.let { ci -> item(key = "checkin") { CheckInCard(ci, onDone = { checkedTick++ }) } }
+        boarding?.let { s -> item(key = "boarding") { BoardingPassCard(s) } }
+        if (arriving) item(key = "hotel") { HotelCard() }
+        forecast?.let { d -> item(key = "weather") { WeatherCard(d) } }
         if (stop != null) item(key = "stop") { StopCard(stop, now, stopSeg) { haptics.tap(); mapOpen = true } }
         if (watch != null) item(key = "live") { LiveCard(flights, watch, onMap = if (stop != null) ({ haptics.tap(); mapOpen = true }) else null) }
         status.next?.let { nx ->
@@ -481,6 +492,69 @@ private fun CheckInCard(c: CheckIn, onDone: () -> Unit) {
                     onClick = { haptics.confirm(); TripNotifier.markCheckedIn(ctx, c.todo); onDone() },
                     modifier = Modifier.weight(1f).height(48.dp),
                 ) { Icon(Ic.Check, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Checked in") }
+            }
+        }
+    }
+}
+
+private const val WALLET = "com.google.android.apps.walletnfcrel"
+
+/** A shortcut to the boarding pass while a take-off is under 24 hours away: Google Wallet if it's installed, and the airline's app. */
+@Composable
+private fun BoardingPassCard(s: Segment) {
+    val ctx = LocalContext.current
+    val haptics = rememberHaptics()
+    val wallet = remember { ctx.packageManager.getLaunchIntentForPackage(WALLET) != null }
+    val hasApp = remember { airline.app?.let { ctx.packageManager.getLaunchIntentForPackage(it) } != null }
+    val airlineLabel = if (hasApp) "${airline.name} app" else "${airline.name} online"
+    val openAirline = { haptics.tap(); ctx.startActivity(TripNotifier.checkInIntent(ctx, preferApp = true)) }
+    Panel(spacing = 10.dp) {
+        Label("Boarding pass · ${s.flight} from ${s.from}")
+        Muted("Have it open for bag drop, security and the gate.")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (wallet) {
+                Button(onClick = { haptics.tap(); ctx.openApp(WALLET) }, Modifier.weight(1f).height(48.dp)) { Text("Google Wallet") }
+                FilledTonalButton(onClick = openAirline, Modifier.weight(1f).height(48.dp)) { Text(airlineLabel) }
+            } else {
+                Button(onClick = openAirline, Modifier.weight(1f).height(48.dp)) { Text("Open $airlineLabel") }
+            }
+        }
+    }
+}
+
+/** On the way out of the arrival airport: the hotel, with transit directions from wherever you are. */
+@Composable
+private fun HotelCard() {
+    val ctx = LocalContext.current
+    val haptics = rememberHaptics()
+    Panel(spacing = 10.dp) {
+        Label("To the hotel")
+        Text(hotel.name, style = MaterialTheme.typography.titleMedium)
+        Muted(hotel.details)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { haptics.tap(); ctx.directions(hotel.mapsQuery) }, Modifier.weight(1f).height(48.dp)) {
+                Icon(Ic.Directions, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Directions")
+            }
+            OutlinedButton(onClick = { haptics.tap(); ctx.dial(hotel.phone) }, Modifier.weight(1f).height(48.dp)) {
+                Icon(Ic.Call, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Call hotel")
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherCard(d: WeatherDay) {
+    val cs = MaterialTheme.colorScheme
+    Panel {
+        Label("Weather today · ${away.name}")
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("${d.hi}°", style = MaterialTheme.typography.headlineLarge)
+            Spacer(Modifier.width(10.dp))
+            Text("${d.lo}°", style = MaterialTheme.typography.titleMedium, color = cs.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp))
+            Spacer(Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.End) {
+                Text(d.word, style = MaterialTheme.typography.titleSmall)
+                d.rain?.let { Muted("$it% chance of rain") }
             }
         }
     }

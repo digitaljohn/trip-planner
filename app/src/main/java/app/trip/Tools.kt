@@ -256,6 +256,7 @@ fun InfoScreen(flights: FlightRepo) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { haptics.tap(); TripNotifier.testCheckIn(ctx) }) { Text("Test check-in alert") }
                     OutlinedButton(onClick = { haptics.tap(); TripNotifier.previewFlightDay(ctx) }) { Text("Preview flight-day card") }
+                    OutlinedButton(onClick = { haptics.tap(); TripWidget.pin(ctx) }) { Text("Add home-screen widget") }
                 }
                 if (!am.canScheduleExactAlarms()) {
                     Muted("Alerts may arrive a few minutes late until you allow alarms for this app.")
