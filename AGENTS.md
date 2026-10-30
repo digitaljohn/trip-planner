@@ -2,15 +2,16 @@
 
 An Android app (Kotlin, Jetpack Compose, Material 3) that walks one person through one trip:
 a live "what to do now" screen, a lock-screen Live Update, flight status with gate alerts,
-terminal maps with GPS, the stay, and travel tools. It is built to be cloned and re-pointed at a
-new trip by editing data, not code.
+terminal maps with GPS, the stay, and travel tools. The app is fixed; each trip is data in its own
+folder outside this repo. This file is for changing the app itself. Planning a trip is `SKILL.md`;
+installing is `install.md`.
 
 ## Where things live
 
 | Path | What it is |
 |------|------------|
-| `trip/MyTrip.kt` | **The trip.** Every name, time, flight, step, place and note. Usually the only file a new trip touches. |
-| `local.properties` | Git-ignored. SDK path, API key, app id/name, and every personal number (`trip.private.*`). |
+| `trip/MyTrip.kt` | The worked example trip. Real trips live in their own folder (`<trip>/MyTrip.kt` plus `trip.properties`), built with `-PtripDir=<trip>` or `tools/build_trip.sh`. |
+| `local.properties` | Git-ignored, per machine: SDK path, Aviationstack key. A trip's `trip.properties` adds and overrides (app id, name, `trip.private.*`). |
 | `app/src/main/java/app/trip/TripModel.kt` | The types `MyTrip.kt` is written in, plus values derived from it. |
 | `.../Timeline.kt` | Steps, legs and `statusAt()`: which leg you're in and what to do now. |
 | `.../Terminals.kt` | The airport terminals the app can map (spots, routes, notes), keyed by IATA code. |
@@ -18,8 +19,9 @@ new trip by editing data, not code.
 | `.../Net.kt` | Aviationstack flight status (quota-rationed) and exchange rates. |
 | `.../Notifier.kt` | Lock-screen status, step alerts, check-in alerts, gate/delay/belt alerts, alarms. |
 | `.../Ui.kt`, `Flights.kt`, `Stay.kt`, `Tools.kt`, `Terminal.kt` | Screens. |
-| `.claude/skills/` | `new-trip` (re-point the app at a new trip) and `add-terminal-map`. |
-| `tools/` | Map generator, OSM fetcher, and the screen-text regression check. |
+| `SKILL.md`, `install.md` | The agent skill (plan, build, verify, install a trip) and its first-time setup. |
+| `skills/add-terminal-map/` | Sub-skill: add an airport terminal to the maps. |
+| `tools/` | `build_trip.sh`, the map generator and OSM fetcher, and the screen-text regression check. |
 
 ## The model in one paragraph
 
@@ -43,8 +45,8 @@ to departure airports whose terminal exists in `Terminals.kt`.
 - **`Segment.departDate` is the local take-off date at the origin.** Aviationstack returns several
   days of the same flight number; this picks the right one. A wrong date means no live data.
 - **`Watch(flight, from, arriving)` must name a real segment key** (`"$flight:$from"`).
-- **Personal numbers go through `secret("key", "placeholder")`** and live in `local.properties` as
-  `trip.private.key=value`. Never write a real booking reference, membership number, passport,
+- **Personal numbers go through `secret("key", "placeholder")`** and live in the trip's
+  `trip.properties` (or `local.properties`) as `trip.private.key=value`. Never write a real booking reference, membership number, passport,
   visa grant, e-ticket or confirmation code into the repo: a booking reference plus surname is
   enough to change someone's flights.
 - **Engine code that reads trip values must be `by lazy`.** `MyTrip.kt` calls into engine files
@@ -56,8 +58,8 @@ to departure airports whose terminal exists in `Terminals.kt`.
 ## Build and run
 
 ```
-./gradlew assembleRelease          # JDK 17; signed with the debug key
-adb install -r app/build/outputs/apk/release/app-release.apk
+tools/build_trip.sh trip                 # the example; JDK 17, signed with the debug key
+tools/build_trip.sh ~/Trips/x --install  # a trip folder, installed on the connected phone
 ```
 
 `local.properties` needs `sdk.dir`; everything else has a working default (see

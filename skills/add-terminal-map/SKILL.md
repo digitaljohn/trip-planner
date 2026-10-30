@@ -55,8 +55,8 @@ Add a `Terminal(...)` to `Terminals.kt` and register it in the `terminals` map b
 
 ## 4. Use it and check it
 
-1. Add a `Stop` for the departure in `trip/MyTrip.kt` (see the new-trip skill).
-2. Build, install on a headless emulator, preview the airport leg, open **Terminal map**, and check
+1. Add a `Stop` for the departure in the trip's `MyTrip.kt` (see `SKILL.md` at the repo root).
+2. Build with `tools/build_trip.sh <trip folder>`, install on a headless emulator, preview the airport leg, open **Terminal map**, and check
    the outline, gate dots, spot pins and (with a sample gate, temporarily) the route and walk time,
    in light and dark. Remove any temporary sample gate before committing.
 3. `adb emu geo fix <lon> <lat>` on the emulator checks the GPS dot inside the terminal, and

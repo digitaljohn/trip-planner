@@ -1,1 +1,2 @@
-Read @AGENTS.md before changing anything. To plan a different trip, use the `new-trip` skill.
+Planning someone's trip: follow @SKILL.md (first-time setup is install.md).
+Changing the app itself: read @AGENTS.md first.

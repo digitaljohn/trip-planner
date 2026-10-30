@@ -1,24 +1,26 @@
-# Copy to local.properties (git-ignored) and fill in. Only sdk.dir is required.
+# Per machine: copy to local.properties (git-ignored). Only sdk.dir is required.
 sdk.dir=/path/to/Android/sdk
 
-# Free key from https://aviationstack.com (100 lookups a month). Without it there's no live flight data.
+# Free key from https://aviationstack.com/pricing (100 lookups a month). Without it there's no live flight data.
 aviationstack.key=
 
-# Your build's identity. Change applicationId if you install more than one trip side by side.
-trip.applicationId=app.trip.planner
-trip.appName=Trip
+# Optional: the trip folder to build when no -PtripDir is given (defaults to the example in trip/).
+# trip.dir=/Users/you/Trips/sydney-2026
 
-# Personal numbers, read in trip/MyTrip.kt with secret("<key>", "placeholder").
-trip.private.booking=
-trip.private.surname=
-trip.private.loyalty.number=
-trip.private.loyalty.points=
-trip.private.loyalty.tierPoints=
-trip.private.loyalty.household=
-trip.private.eticket=
-trip.private.evisa=
-trip.private.hotel.confirmation=
-trip.private.hotel.loyalty=
-trip.private.agency=
-trip.private.esim.order=
-trip.private.esim.iccid=
+# Per trip: put these in <trip folder>/trip.properties. They override anything above.
+# trip.applicationId=app.trip.sydney2026
+# trip.appName=Sydney
+# Personal numbers, read in MyTrip.kt with secret("<key>", "placeholder"):
+# trip.private.booking=
+# trip.private.surname=
+# trip.private.loyalty.number=
+# trip.private.loyalty.points=
+# trip.private.loyalty.tierPoints=
+# trip.private.loyalty.household=
+# trip.private.eticket=
+# trip.private.evisa=
+# trip.private.hotel.confirmation=
+# trip.private.hotel.loyalty=
+# trip.private.agency=
+# trip.private.esim.order=
+# trip.private.esim.iccid=

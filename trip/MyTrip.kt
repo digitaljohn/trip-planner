@@ -6,8 +6,8 @@ import java.time.ZoneId
 
 // =====================================================================================
 //  The trip. Everything specific to one journey lives in this file; the rest of the app
-//  reads it. To plan a different trip, rewrite this file (the new-trip skill walks through
-//  it) and keep personal numbers in local.properties via secret(). See AGENTS.md.
+//  reads it. This copy is the worked example; a real trip keeps its own copy in its trip
+//  folder, with personal numbers in that folder's trip.properties via secret(). See SKILL.md.
 // =====================================================================================
 
 // ---- who and where ----
