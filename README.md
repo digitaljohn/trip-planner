@@ -23,23 +23,32 @@ Paste into Claude Code, Codex, or any agent with shell access:
 ```text
 Set up https://github.com/digitaljohn/trip-planner for me.
 
-Read install.md first to clone it, check Java and the Android SDK (ask me before installing anything big), register the skill with whichever agent you're running under, and set up the Aviationstack key — ask me to paste it when you need it. Then read SKILL.md for how trips work. After install, don't start a trip — just tell me it's ready and wait.
+Read install.md first. It covers:
+- cloning the repo
+- checking Java and the Android SDK (ask me before installing anything big)
+- registering the skill with whichever agent you're running under
+- setting up the Aviationstack key (ask me to paste it when you need it)
+
+Then read SKILL.md for how trips work.
+
+After install, don't start a trip. Just tell me it's ready and wait.
 ```
 
-Then make a folder for a trip and start your agent in it:
+Then start your agent wherever you like and tell it about the trip, from any source it can reach:
 
-```bash
-mkdir -p ~/Trips/sydney-2026 && cd ~/Trips/sydney-2026
-claude    # or codex, etc.
-```
+> set up my Sydney trip — the booking confirmations are in my Gmail
 
-And say:
+> here are my flights and hotel: [pasted itinerary, PDFs, screenshots]
 
-> set up my trip — the booking emails are in this folder
+> my trip's in my calendar for next week; build me the app
+
+Booking emails, calendar events, documents in a connected drive, files on disk, or details typed
+into the chat all work, in any mix.
 
 It reads your bookings, asks for anything missing, plays the trip back to you in plain English,
 waits for your OK, builds the app, checks every leg on an emulator, and installs it on your phone.
-Everything for the trip stays in that folder: the trip itself (`MyTrip.kt`), your private numbers
+Everything for the trip is kept in its own folder (it suggests `~/Trips/<trip>/` unless you're
+already in one): the trip itself (`MyTrip.kt`), your private numbers
 (`trip.properties`), notes for next time (`project.md`) and the app (`out/trip.apk`). This repo
 never holds anyone's trip.
 

@@ -120,8 +120,9 @@ cd ~/Developer/trip-planner && tools/build_trip.sh trip
 Tell them, in one short message:
 
 - It's installed at `~/Developer/trip-planner`.
-- To start: make a folder for the trip (e.g. `~/Trips/sydney-2026`), optionally drop booking
-  emails or PDFs into it, open their agent there, and say something like *"set up my trip"*.
+- To start: say something like *"set up my Sydney trip, the bookings are in my email"*. Details can
+  come from any connected source (email, calendar, drive), files, or the chat; the trip gets its
+  own folder under `~/Trips/`.
 - To put the app on their phone they'll need USB debugging on; you'll walk them through it when
   the app is ready.
 

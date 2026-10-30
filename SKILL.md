@@ -14,9 +14,9 @@ directory containing this file (usually `~/Developer/trip-planner`, symlinked as
 
 ## Principles
 
-1. **One folder per trip, outside this repo.** The person runs you from a trip folder such as
-   `~/Trips/sydney-2026/`. Everything for that trip lives there; this repo never changes during a
-   trip session.
+1. **One folder per trip, outside this repo.** Details can come from anywhere, but everything
+   you write for a trip lives in its folder, such as `~/Trips/sydney-2026/`. This repo never
+   changes during a trip session.
 2. **Ask → confirm → build → verify → install → persist.** Never build until they've agreed the
    trip in plain English; never install on their phone without saying so first.
 3. **Facts come from their documents or official sources, never guesses.** Unknown is better than
@@ -53,7 +53,7 @@ directory containing this file (usually `~/Developer/trip-planner`, symlinked as
 ├── MyTrip.kt          ← the trip (start from trip/MyTrip.kt)
 ├── trip.properties    ← app id, app name, private numbers (never shared)
 ├── project.md         ← memory: what's been done, decided, and still open; append each session
-├── docs/              ← booking emails, PDFs, screenshots they give you (optional)
+├── docs/              ← booking PDFs and screenshots used as sources (optional)
 └── out/trip.apk       ← the built app
 ```
 
@@ -73,14 +73,27 @@ The machine-wide Aviationstack key lives in this repo's `local.properties` (set 
 
 ### 1. Orient
 
+Work out the trip folder. If the current directory has a `MyTrip.kt` or `project.md`, that's it.
+Otherwise look under `~/Trips/` for this trip; if it's new, propose `~/Trips/<place>-<year>/` and
+create it once they agree. Never use this repo, their home directory, or an unrelated project as
+the trip folder.
+
 If `<trip>/project.md` exists, read it and pick up where it left off. Otherwise this is a new trip:
 say so and continue.
 
 ### 2. Gather
 
-Read anything in the folder (`docs/`, PDFs, `.eml`, screenshots). If they have an email connector,
-offer to search for the booking confirmations. Then ask once, in a single message, for what's
-still missing:
+Use whatever sources they point you at, or offer the ones you can reach:
+
+- **Connected services**: search email for booking confirmations (airline, hotel, travel agent,
+  eSIM, visa grant), the calendar for the trip's dates and meetings, and connected drives for
+  itineraries or tickets. Only read what's needed for this trip.
+- **Files**: anything in the trip folder or paths they give you (PDFs, `.eml`, screenshots).
+- **The chat**: pasted itineraries, attachments, or details typed in.
+
+Save copies of key documents you used into `<trip>/docs/` when they're files (not email bodies
+with personal data they didn't ask you to keep), and note every source in `project.md`. Then ask
+once, in a single message, for what's still missing:
 
 - Flights: airline, numbers, cabin, every leg's airports, local times and dates, terminals, seat.
 - Home and destination: city names, time zones.
