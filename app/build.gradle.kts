@@ -6,15 +6,23 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Which trip to build: -PtripDir=<folder>, TRIP_DIR, or trip.dir in local.properties; else the example in trip/.
+// A trip folder holds MyTrip.kt and an optional trip.properties (app id, name, private values), whose
+// settings override the machine-wide local.properties (SDK path, API key).
+fun props(f: File) = Properties().apply { f.takeIf { it.exists() }?.inputStream()?.use(::load) }
+val machine = props(rootProject.file("local.properties"))
+val tripDir = file(
+    (findProperty("tripDir") as String?) ?: System.getenv("TRIP_DIR") ?: machine.getProperty("trip.dir") ?: rootProject.file("trip").path,
+)
+require(File(tripDir, "MyTrip.kt").exists()) { "No MyTrip.kt in $tripDir" }
+val local = Properties().apply { putAll(machine); putAll(props(File(tripDir, "trip.properties"))) }
+
 android {
-    // The trip itself lives at the repo root so it's the first thing anyone customising the app sees.
-    sourceSets.getByName("main").java.srcDir("../trip")
+    sourceSets.getByName("main").java.srcDir(tripDir)
     namespace = "app.trip"
     compileSdk = 36
 
     defaultConfig {
-        // Per-person settings come from the git-ignored local.properties; see AGENTS.md.
-        val local = Properties().apply { rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load) }
         applicationId = local.getProperty("trip.applicationId", "app.trip.planner")
         resValue("string", "app_name", local.getProperty("trip.appName", "Trip"))
         minSdk = 31
