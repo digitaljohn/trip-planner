@@ -61,6 +61,10 @@ never holds anyone's trip.
   is announced or changes, and an explicit refresh button. Lookups are rationed to the quota.
 - **Terminal maps**: real outlines and gates from OpenStreetMap, with your GPS position, the route
   to your gate, trains between terminals, food, showers and smoking areas.
+- **Home-screen widget**: the current step and a live countdown to the next one.
+- **Boarding pass and hotel shortcuts**: Google Wallet or the airline's app in the 24 hours before
+  each take-off, and transit directions to the hotel as you land.
+- **Weather**: the stay's forecast from Open-Meteo (free, no key), and today's on the Now screen.
 - **Stay, tools and info**: hotel, calendar and sketch map; currency, time and tax-refund tools;
   check-in links and alerts; references, contacts, loyalty and eSIM cards.
 
@@ -97,10 +101,12 @@ app/src/main/java/app/trip/
   Terminals.kt            airport terminals the maps know
   TerminalData.kt         generated from OpenStreetMap
   Net.kt, Notifier.kt     live data, alerts, lock screen
+  Weather.kt, TripWidget.kt  forecast, home-screen widget
   Ui.kt, Flights.kt, Stay.kt, Tools.kt, Terminal.kt   screens
 skills/add-terminal-map/  sub-skill: add an airport
 tools/                    build_trip.sh, map generator, OSM fetcher, screen-text check
 docs/screenshots/         README images, of the example trip
 ```
 
-Map data © OpenStreetMap contributors (ODbL). Exchange rates by ExchangeRate-API.
+Map data © OpenStreetMap contributors (ODbL). Exchange rates by ExchangeRate-API. Weather by
+Open-Meteo.com (CC BY 4.0).

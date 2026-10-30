@@ -18,6 +18,8 @@ installing is `install.md`.
 | `.../TerminalData.kt` | Generated outlines and gate positions. Don't edit; regenerate with `tools/terminals_from_osm.py`. |
 | `.../Net.kt` | Aviationstack flight status (quota-rationed) and exchange rates. |
 | `.../Notifier.kt` | Lock-screen status, step alerts, check-in alerts, gate/delay/belt alerts, alarms. |
+| `.../Weather.kt` | Open-Meteo forecast for the away city (no key; found by name and time zone). |
+| `.../TripWidget.kt` | Home-screen widget, redrawn on each alarm. |
 | `.../Ui.kt`, `Flights.kt`, `Stay.kt`, `Tools.kt`, `Terminal.kt` | Screens. |
 | `SKILL.md`, `install.md` | The agent skill (plan, build, verify, install a trip) and its first-time setup. |
 | `skills/add-terminal-map/` | Sub-skill: add an airport terminal to the maps. |

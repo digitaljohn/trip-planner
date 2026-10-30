@@ -57,6 +57,14 @@ fun statusAt(now: Instant, checkedIn: Boolean = false): Status {
     return Status(i, leg, leg.base?.let { Duration.between(it, now).toMinutes() }, progress, title, detail, cur, next)
 }
 
+/** The short counter for the lock screen and widget: T−2:13 around flights, the day of the stay, or Home. */
+fun Status.chip(now: Instant): String = when (leg.kind) {
+    Kind.PRE -> "T" + clock(Duration.between(OUT, now).toMinutes())
+    Kind.STAY -> "Day ${Duration.between(leg.from, now).toDays() + 1}"
+    Kind.POST -> "Home"
+    else -> "T" + clock(elapsedMin ?: 0)
+}
+
 fun dur(d: Duration): String {
     val m = d.toMinutes().coerceAtLeast(0)
     val days = m / 1440

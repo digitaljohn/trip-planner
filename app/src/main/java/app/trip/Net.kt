@@ -20,7 +20,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.YearMonth
 
-private fun get(url: String, headers: Map<String, String> = emptyMap()): Pair<Int, String> {
+internal fun get(url: String, headers: Map<String, String> = emptyMap()): Pair<Int, String> {
     val c = URL(url).openConnection() as HttpURLConnection
     c.connectTimeout = 10_000
     c.readTimeout = 15_000

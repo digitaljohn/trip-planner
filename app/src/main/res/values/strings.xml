@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Where you are in the trip, what to do now, and the countdown to the next step</string>
+    <string name="widget_preview_leg">AT THE AIRPORT · T−1:20</string>
+    <string name="widget_preview_title">Security</string>
+    <string name="widget_preview_next">Next · Gate shows on screens</string>
+</resources>

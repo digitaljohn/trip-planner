@@ -3,7 +3,9 @@ package app.trip
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -33,7 +35,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 @Composable
-fun StayScreen(now: Instant) {
+fun StayScreen(now: Instant, weather: WeatherRepo) {
     val ctx = LocalContext.current
     val copy = rememberCopy()
     val haptics = rememberHaptics()
@@ -61,6 +63,7 @@ fun StayScreen(now: Instant) {
             }
         }
         item { Calendar(stayCalendar, now.atZone(away.zone).toLocalDate()) }
+        item { Forecast(weather, now.atZone(away.zone).toLocalDate()) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 stayTips.forEachIndexed { i, t -> TipRow(i + 1, t.head, t.body) }
@@ -80,7 +83,7 @@ fun StayScreen(now: Instant) {
                 )
             }
         }
-        item { Muted("Sketch map, positions approximate.") }
+        item { Muted("Sketch map, positions approximate. Weather by Open-Meteo.com.") }
     }
 }
 
@@ -122,6 +125,36 @@ private fun Calendar(c: StayCalendar, today: LocalDate) {
                 }
             }
         }
+    }
+}
+
+/** The forecast for the days of the stay still to come, from today or the day you land. */
+@Composable
+private fun Forecast(weather: WeatherRepo, today: LocalDate) {
+    val cs = MaterialTheme.colorScheme
+    val stay = legs.first { it.kind == Kind.STAY }
+    val first = maxOf(today, stay.from!!.atZone(away.zone).toLocalDate())
+    val last = RET.atZone(away.zone).toLocalDate()
+    val days = weather.days.filter { !it.date.isBefore(first) && !it.date.isAfter(last) }
+    Panel(spacing = 10.dp) {
+        Label("Weather · ${away.name}")
+        when {
+            days.isNotEmpty() -> Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                days.forEach { d ->
+                    Column(Modifier.width(66.dp)) {
+                        Label(d.date.dayOfWeek.toString().take(3) + " " + d.date.dayOfMonth, if (d.date == today) cs.primary else cs.onSurfaceVariant)
+                        Text("${d.hi}°", style = MaterialTheme.typography.titleLarge)
+                        Mono("${d.lo}°", color = cs.onSurfaceVariant, weight = FontWeight.Normal)
+                        Text(d.word, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant, maxLines = 1)
+                        if ((d.rain ?: 0) >= 20) Text("${d.rain}%", style = MaterialTheme.typography.labelSmall, color = cs.primary, maxLines = 1)
+                    }
+                }
+            }
+            today.isAfter(last) -> Muted("The stay is over.")
+            weather.days.isNotEmpty() -> Muted("Forecasts reach 16 days ahead. The stay's days appear from ${first.minusDays(15).dayOfMonth} ${first.minusDays(15).month.toString().lowercase().replaceFirstChar { it.uppercase() }.take(3)}.")
+            else -> Muted(weather.error ?: "Loading the forecast…")
+        }
+        if (days.isNotEmpty()) Muted(listOfNotNull("Red figures are the chance of rain.", weather.error).joinToString(" "))
     }
 }
 
