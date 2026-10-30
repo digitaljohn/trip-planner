@@ -6,6 +6,16 @@ A live "what to do now" timeline, a lock-screen status card, flight gates and ga
 terminal maps with your GPS position, your hotel and places, and travel tools — built from your
 booking details, checked leg by leg, and installed for you.
 
+<p align="center">
+  <img src="docs/screenshots/now.png" width="24%" alt="Now: the Singapore stop, with a free-time countdown, a bar of the stop's stages and the nearest food">
+  <img src="docs/screenshots/terminal-map.png" width="24%" alt="Changi T1 terminal map from OpenStreetMap, with your GPS position, food, smoking areas and Skytrain stops">
+  <img src="docs/screenshots/flights.png" width="24%" alt="Flights: both journeys with stopovers, and the live-status refresh button">
+  <img src="docs/screenshots/stay.png" width="24%" alt="Stay: a sketch map of the city with routes from the hotel, and places with directions">
+</p>
+<p align="center">
+  <img src="docs/screenshots/live-update.png" width="60%" alt="Live Update card mid-flight, as on the lock screen: current step, countdown to landing and the whole travel day as a progress bar">
+</p>
+
 ## Setup prompt
 
 Paste into Claude Code, Codex, or any agent with shell access:
@@ -45,7 +55,13 @@ never holds anyone's trip.
 - **Stay, tools and info**: hotel, calendar and sketch map; currency, time and tax-refund tools;
   check-in links and alerts; references, contacts, loyalty and eSIM cards.
 
-The repo ships with a made-up London → Singapore → Sydney trip in `trip/` as the worked example.
+<p align="center">
+  <img src="docs/screenshots/tools.png" width="32%" alt="Tools: currency converter with live rates and a time converter for calling home">
+  <img src="docs/screenshots/info.png" width="32%" alt="Info: checklist with check-in buttons, and the frequent-flyer card with progress to the next tier">
+</p>
+
+The repo ships with a made-up London → Singapore → Sydney trip in `trip/` as the worked example;
+the screenshots are of it.
 
 ## Manual install
 
@@ -75,6 +91,7 @@ app/src/main/java/app/trip/
   Ui.kt, Flights.kt, Stay.kt, Tools.kt, Terminal.kt   screens
 skills/add-terminal-map/  sub-skill: add an airport
 tools/                    build_trip.sh, map generator, OSM fetcher, screen-text check
+docs/screenshots/         README images, of the example trip
 ```
 
 Map data © OpenStreetMap contributors (ODbL). Exchange rates by ExchangeRate-API.
