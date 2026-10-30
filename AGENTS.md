@@ -42,8 +42,8 @@ to departure airports whose terminal exists in `Terminals.kt`.
 - **Segments are in flight order.** A segment whose flight number matches the one before it is a
   connection (fewer quota checks, no belt alert); the last segment of each flight number is where
   bags come off.
-- **`Segment.departDate` is the local take-off date at the origin.** Aviationstack returns several
-  days of the same flight number; this picks the right one. A wrong date means no live data.
+- **Each `Segment` carries its origin's time zone.** Aviationstack returns several days of the same
+  flight number; the local take-off date worked out from it picks ours. A wrong zone means no live data.
 - **`Watch(flight, from, arriving)` must name a real segment key** (`"$flight:$from"`).
 - **Personal numbers go through `secret("key", "placeholder")`** and live in the trip's
   `trip.properties` (or `local.properties`) as `trip.private.key=value`. Never write a real booking reference, membership number, passport,
@@ -68,7 +68,10 @@ live flight data.
 
 ## Verifying a change
 
-1. Build. The trip file is type-checked, so most data mistakes stop here.
+1. `./gradlew testReleaseUnitTest` runs `TripRulesTest` (the hard rules in `SKILL.md`, plus a
+   15-minute walk through the whole trip) against the example, or a trip with `-PtripDir`. CI runs
+   it and builds the example on every PR, and scans history for secrets. Then build; the trip file
+   is type-checked, so most data mistakes stop there.
 2. Install on an emulator (start it with `-no-window` so nothing pops up on the user's screen).
 3. On Now, turn on **Preview another moment** and tap every leg chip. Each leg should show the
    right title, "Do now" text, countdown and next step; airport legs with a terminal show the

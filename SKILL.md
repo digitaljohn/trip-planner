@@ -37,8 +37,9 @@ directory containing this file (usually `~/Developer/trip-planner`, symlinked as
    `Airport.leg` is the index of its GROUND leg, whose `airport` field is that same index.
 4. **`OUT`/`RET` are UTC instants.** Convert from local time with the airport's zone on that
    date; every other time is a minute offset via `plusMin`. Check DST.
-5. **`Segment.departDate` is the local take-off date at the origin**, and segments are in flight
-   order. A wrong date means no live data.
+5. **Each `Segment` names its origin airport's time zone**, which gives the local take-off date
+   that picks the right day's live data, and segments are in flight order. A wrong zone means no
+   live data.
 6. **Each trip gets its own `trip.applicationId`** (`app.trip.<slug>`), so two trips on one phone
    don't overwrite each other. Keep it stable across rebuilds of the same trip, or the app's data
    is lost.
@@ -137,7 +138,9 @@ Write `trip.properties` with the app id, name and every personal value.
 
 ### 5. Build and verify
 
-1. `tools/build_trip.sh <trip>` (from this repo). Type errors are usually a missing field.
+1. `tools/build_trip.sh <trip>` (from this repo). It runs the trip-rules tests first, then
+   builds. Type errors are usually a missing field; a test failure names the leg or flight that
+   breaks a hard rule. Fix the trip, never the test.
 2. Install on a headless emulator (`emulator -avd <name> -no-window`; nothing should pop up on
    their screen): `adb -s emulator-5554 install -r <trip>/out/trip.apk`.
 3. On Now, turn on **Preview another moment** and tap every leg chip: title, "Do now",
