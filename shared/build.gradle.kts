@@ -51,6 +51,12 @@ kotlin {
     androidTarget {
         compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
+    listOf(iosArm64(), iosSimulatorArm64()).forEach {
+        it.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
     compilerOptions {
         optIn.add("kotlin.time.ExperimentalTime")
         freeCompilerArgs.add("-Xexpect-actual-classes")

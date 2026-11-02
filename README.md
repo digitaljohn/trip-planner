@@ -1,6 +1,6 @@
 # Trip planner
 
-Tell your coding agent about a trip; get a personal Android app for it on your phone.
+Tell your coding agent about a trip; get a personal app for it on your phone, Android or iPhone.
 
 A live "what to do now" timeline, a lock-screen status card, flight gates and gate-change alerts,
 terminal maps with your GPS position, your hotel and places, and travel tools — built from your
@@ -68,13 +68,32 @@ never holds anyone's trip.
 - **Stay, tools and info**: hotel, calendar and sketch map; currency, time and tax-refund tools;
   check-in links and alerts; references, contacts, loyalty and eSIM cards.
 
+### On iPhone
+
+The same app, built from the same code and the same trip folder, with the iPhone's own versions of
+the system parts:
+
+- **Lock screen**: a Live Activity (lock screen and Dynamic Island) instead of the Android 16 Live
+  Update. iOS ends a Live Activity after about 8 hours; opening the app starts a fresh one.
+- **Alerts**: step and check-in alerts are scheduled ahead, so they arrive on time even with the app
+  closed. Gate, delay and belt alerts need a fresh lookup, which iOS runs in the background only when
+  it chooses (often every 15–60 minutes, sometimes much less), so they can arrive later than on
+  Android. Opening the app checks straight away. Check-in alerts can't be pinned until Done.
+- **Widget, wallet, maps**: a WidgetKit home-screen widget (added from the home screen's Edit menu),
+  Apple Wallet for boarding passes, Apple Maps for directions.
+- **Airline, loyalty and eSIM app buttons** need the trip to give each app's iPhone link
+  (`iosApp`); without one, check-in opens the airline's website and the other buttons are hidden.
+- **Installing** needs a Mac with Xcode and an Apple developer team (a free Apple ID works, but the
+  app then stops opening after 7 days until it's reinstalled).
+
 <p align="center">
   <img src="docs/screenshots/tools.png" width="32%" alt="Tools: currency converter with live rates and a time converter for calling home">
   <img src="docs/screenshots/info.png" width="32%" alt="Info: checklist with check-in buttons, and the frequent-flyer card with progress to the next tier">
 </p>
 
 The repo ships with a made-up London → Singapore → Sydney trip in `trip/` as the worked example;
-the screenshots are of it.
+the screenshots are of it (Android).
+
 
 ## Manual install
 
@@ -84,10 +103,12 @@ ln -sfn ~/Developer/trip-planner ~/.claude/skills/trip-planner      # Claude Cod
 cd ~/Developer/trip-planner
 cp local.properties.example local.properties                         # set sdk.dir and aviationstack.key
 tools/build_trip.sh trip                                             # builds the example; needs JDK 17
+tools/build_trip.sh trip --ios                                       # the iPhone app, for the simulator; needs Xcode
 ```
 
 To build a trip folder yourself: copy `trip/MyTrip.kt` into it, edit, add a `trip.properties`
-(see `local.properties.example` for the keys), then `tools/build_trip.sh <folder> --install`.
+(see `local.properties.example` for the keys), then `tools/build_trip.sh <folder> --install` for an
+Android phone or `--ios-install` for an iPhone (set `ios.team` first).
 
 ## Layout
 
@@ -95,14 +116,19 @@ To build a trip folder yourself: copy `trip/MyTrip.kt` into it, edit, add a `tri
 SKILL.md, install.md      the agent skill and its first-time setup
 AGENTS.md                 how the app is built, for changing the app itself
 trip/MyTrip.kt            the example trip
-app/src/main/java/app/trip/
+shared/src/commonMain/kotlin/app/trip/   the app, for both platforms (Kotlin Multiplatform, Compose)
   TripModel.kt            the types a trip is written in
   Timeline.kt             legs, steps and "what to do now"
+  Schedule.kt             which flight to watch, when, and which alerts fresh data calls for
   Terminals.kt            airport terminals the maps know
   TerminalData.kt         generated from OpenStreetMap
-  Net.kt, Notifier.kt     live data, alerts, lock screen
-  Weather.kt, TripWidget.kt  forecast, home-screen widget
+  Net.kt, Weather.kt      live flight data, rates, forecast
   Ui.kt, Flights.kt, Stay.kt, Tools.kt, Terminal.kt   screens
+  Platform.kt, Time.kt    what each platform supplies; java.time names for trips
+shared/src/androidMain/   Android: lock-screen Live Update, alarms, widget, notifications
+shared/src/iosMain/       iPhone: notifications, Live Activity and widget data
+app/                      the Android app shell (app id and name)
+iosApp/                   the iPhone app shell, widget and Live Activity (SwiftUI; Xcode project)
 skills/add-terminal-map/  sub-skill: add an airport
 tools/                    build_trip.sh, map generator, OSM fetcher, screen-text check
 docs/screenshots/         README images, of the example trip

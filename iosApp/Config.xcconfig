@@ -1,0 +1,11 @@
+// Defaults for the example trip. tools/build_trip.sh writes Trip.xcconfig (git-ignored) with a trip's
+// own id, name, folder and signing team, which override these.
+TRIP_BUNDLE_ID = app.trip.planner
+TRIP_APP_NAME = Trip
+TRIP_DIR = $(SRCROOT)/../trip
+TRIP_APP_GROUP = group.$(TRIP_BUNDLE_ID)
+DEVELOPMENT_TEAM =
+MARKETING_VERSION = 1.0
+CURRENT_PROJECT_VERSION = 1
+
+#include? "Trip.xcconfig"

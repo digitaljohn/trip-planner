@@ -1,6 +1,6 @@
 ---
 name: trip-planner-install
-description: Install trip-planner into the current agent (Claude Code, Codex, or another with shell access), check the Android build tools, register the skill, and set up the Aviationstack key, so the person can start planning a trip.
+description: Install trip-planner into the current agent (Claude Code, Codex, or another with shell access), check the Android build tools (and Xcode for iPhones), register the skill, and set up the Aviationstack key, so the person can start planning a trip.
 ---
 
 # trip-planner install
@@ -9,16 +9,19 @@ Use this file only for first-time install or to repair one. For planning trips, 
 
 ## What you're setting up
 
-A skill that builds a personal Android travel app for one trip. After install, the person makes a
+A skill that builds a personal travel app for one trip, for Android or iPhone. After install, the person makes a
 folder for a trip, runs their agent there, and says "set up my Sydney trip" (or pastes booking
 details). You do the rest from `SKILL.md`.
 
-Four things must be true on this machine:
+These must be true on this machine:
 
 1. The repo is cloned to a stable path (`~/Developer/trip-planner`).
 2. JDK 17 and the Android SDK are available, and the example trip builds.
 3. The skill is registered with the current agent.
 4. An Aviationstack key is in `local.properties` (optional: without it the app has no live gates).
+5. For iPhones (optional, macOS only): Xcode is installed, and the example builds for the simulator.
+
+JDK 17 and the Android SDK are needed even for iPhone-only use: the build runs through Gradle.
 
 ## Install contract
 
@@ -104,7 +107,15 @@ chmod 600 ~/Developer/trip-planner/local.properties
 Don't test the key with a lookup: each one spends a real quota unit. It's checked the first time
 someone taps refresh in the app.
 
-### 6. Verify
+### 6. Xcode (iPhones only)
+
+Ask whether they'll want the app on an iPhone. If so, on macOS check `xcodebuild -version` (Xcode
+16 or later). If it's missing, they install Xcode from the App Store themselves (it's large and
+needs their Apple ID), then run `sudo xcodebuild -license accept` themselves. For installing on a
+phone later, ask for their Apple developer team ID (Xcode → Settings → Accounts) and write it as
+`ios.team=` in `local.properties`.
+
+### 7. Verify
 
 Build the example trip. This downloads Gradle and the app's dependencies the first time (a few
 minutes):
@@ -113,9 +124,10 @@ minutes):
 cd ~/Developer/trip-planner && tools/build_trip.sh trip
 ```
 
-`Built …/trip/out/trip.apk` means everything works (`trip/out/` is git-ignored).
+`Built …/trip/out/trip.apk` means everything works (`trip/out/` is git-ignored). With Xcode, also
+`tools/build_trip.sh trip --ios`, which should end with `Built …/trip/out/Trip.app (simulator)`.
 
-### 7. Hand over
+### 8. Hand over
 
 Tell them, in one short message:
 
@@ -123,8 +135,8 @@ Tell them, in one short message:
 - To start: say something like *"set up my Sydney trip, the bookings are in my email"*. Details can
   come from any connected source (email, calendar, drive), files, or the chat; the trip gets its
   own folder under `~/Trips/`.
-- To put the app on their phone they'll need USB debugging on; you'll walk them through it when
-  the app is ready.
+- To put the app on their phone they'll need USB debugging on (Android) or Developer Mode and a
+  signing team (iPhone); you'll walk them through it when the app is ready.
 
 ## Keeping it current
 
