@@ -9,7 +9,7 @@ import android.content.Intent
 import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
-import java.time.Instant
+import kotlin.time.Clock
 
 /**
  * Home-screen widget: the leg, what to do now and a countdown to the next step. Redrawn by every
@@ -24,7 +24,7 @@ class TripWidget : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(ctx)
             val ids = manager.getAppWidgetIds(ComponentName(ctx, TripWidget::class.java))
             if (ids.isEmpty()) return
-            manager.updateAppWidget(ids, views(ctx, Instant.now()))
+            manager.updateAppWidget(ids, views(ctx, Clock.System.now()))
         }
 
         /** Asks the launcher to add the widget; the launcher shows its own confirmation. */
@@ -34,7 +34,7 @@ class TripWidget : AppWidgetProvider() {
         }
 
         private fun views(ctx: Context, now: Instant): RemoteViews {
-            val s = statusAt(now, isDone(ctx, "checkin"))
+            val s = statusAt(now, isDone("checkin"))
             val v = RemoteViews(ctx.packageName, R.layout.widget_now)
             v.setTextViewText(R.id.widget_leg, "${s.leg.name} · ${s.chip(now)}".uppercase())
             v.setTextViewText(R.id.widget_title, s.doTitle)

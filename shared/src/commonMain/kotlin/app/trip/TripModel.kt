@@ -1,8 +1,5 @@
 package app.trip
 
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 
 // The shapes a trip is described in. The trip itself is trip/MyTrip.kt; nothing here is specific to one trip.
 //
@@ -29,9 +26,10 @@ class Segment(
     val departDate: String get() = departs.atZone(fromZone).toLocalDate().toString()
 }
 
+/** [app] is the airline's Android package; [iosApp] a URL that opens its iPhone app (an App Store link at least). */
 class Airline(
     val name: String, val app: String?, val checkInUrl: String,
-    val bookingRef: String, val surname: String,
+    val bookingRef: String, val surname: String, val iosApp: String? = null,
 )
 
 /**
@@ -42,11 +40,11 @@ class Loyalty(
     val program: String, val short: String, val memberName: String, val memberShort: String, val number: String, val app: String?,
     val points: String, val tierPoints: String, val tiers: List<Pair<String, Int>>, val yearEnds: String,
     val balance: Int, val tierBalance: Int, val household: Int?, val asOf: String,
-    val tripPoints: Int, val tripTierPoints: Int,
+    val tripPoints: Int, val tripTierPoints: Int, val iosApp: String? = null,
 )
 
-/** [app] is the provider's Android package, opened by the "[appName] app" button. */
-class Esim(val title: String, val note: String, val refs: List<Pair<String, String>>, val app: String?, val appName: String, val support: String)
+/** [app] is the provider's Android package and [iosApp] a URL that opens its iPhone app, both for the "[appName] app" button. */
+class Esim(val title: String, val note: String, val refs: List<Pair<String, String>>, val app: String?, val appName: String, val support: String, val iosApp: String? = null)
 
 /** [estimate] is units per one local currency unit, used until the first rates download. */
 class Currency(val code: String, val symbol: String, val estimate: Double)

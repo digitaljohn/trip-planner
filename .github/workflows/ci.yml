@@ -34,7 +34,7 @@ jobs:
         if: failure()
         with:
           name: test-report
-          path: app/build/reports/tests/
+          path: shared/build/reports/tests/
 
   secrets:
     name: No secrets or personal files

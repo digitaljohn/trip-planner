@@ -2,15 +2,6 @@
 
 package app.trip
 
-import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
-import android.location.LocationRequest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -38,7 +29,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -47,11 +37,11 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.Duration
-import java.time.Instant
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.roundToInt
+import kotlin.time.Clock
 
 // ---- terminal model ----
 
@@ -86,7 +76,7 @@ class Terminal(
     val hint: (String) -> String? = { null },
     private val via: (String) -> List<Waypoint>,
 ) {
-    private val c = cos(Math.toRadians(lat0))
+    private val c = cos(lat0 * (PI / 180))
     fun at(lat: Double, lon: Double) = Offset(((lon - lon0) * 111320 * c).toFloat(), (-(lat - lat0) * 110540).toFloat())
 
     val gates: Map<String, Offset> = gates.mapValues { Offset(it.value[0], it.value[1]) }
@@ -133,7 +123,7 @@ class Phase(val label: String, val from: Long, val to: Long, val free: Boolean =
  * A live delay pushes the gate and boarding times back, so free time grows with it.
  */
 class Stop(
-    val airport: Int, val terminal: Terminal, val takeOff: Instant, val watch: Watch, val zone: java.time.ZoneId,
+    val airport: Int, val terminal: Terminal, val takeOff: Instant, val watch: Watch, val zone: ZoneId,
     private val before: List<Phase>, private val freeStart: Long, private val boardAt: Long,
     private val walkLabel: String, private val defaultWalk: Int, private val queue: Int = 0,
 ) {
@@ -153,40 +143,15 @@ fun gateHint(airport: String, gate: String): String = terminals[airport]?.hint?.
 
 // ---- location ----
 
-/** Live location while composed; null until permission is granted and a fix arrives. */
-@Composable
-fun rememberLocation(): Pair<Location?, Boolean> {
-    val ctx = LocalContext.current
-    fun granted() = ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-        ctx.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-    var allowed by remember { mutableStateOf(granted()) }
-    var fix by remember { mutableStateOf<Location?>(null) }
-    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { allowed = granted() }
-    LaunchedEffect(Unit) { if (!allowed) ask.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }
-    DisposableEffect(allowed) {
-        val lm = ctx.getSystemService(LocationManager::class.java)
-        val provider = listOf(LocationManager.FUSED_PROVIDER, LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER).firstOrNull { lm.hasProvider(it) }
-        val listener = LocationListener { fix = it }
-        if (allowed && provider != null) {
-            runCatching {
-                fix = lm.getLastKnownLocation(provider)
-                lm.requestLocationUpdates(provider, LocationRequest.Builder(3_000).setQuality(LocationRequest.QUALITY_HIGH_ACCURACY).build(), ctx.mainExecutor, listener)
-            }
-        }
-        onDispose { lm.removeUpdates(listener) }
-    }
-    return fix to allowed
-}
-
 /** Where [fix] puts you on [t]: the map point, or how far away you are when that's outside the terminal. */
 class Whereabouts(val at: Offset?, val awayM: Float?, val accuracyM: Float)
 
-fun whereabouts(t: Terminal, fix: Location?): Whereabouts? {
+fun whereabouts(t: Terminal, fix: Fix?): Whereabouts? {
     fix ?: return null
-    if (Duration.between(Instant.ofEpochMilli(fix.time), Instant.now()).toMinutes() > 10) return null
-    val p = t.at(fix.latitude, fix.longitude)
+    if (Duration.between(Instant.fromEpochMilliseconds(fix.timeMs), Clock.System.now()).toMinutes() > 10) return null
+    val p = t.at(fix.lat, fix.lon)
     val d = t.distanceTo(p)
-    return if (d > IN_TERMINAL_M) Whereabouts(null, d, fix.accuracy) else Whereabouts(p, null, fix.accuracy)
+    return if (d > IN_TERMINAL_M) Whereabouts(null, d, fix.accuracyM) else Whereabouts(p, null, fix.accuracyM)
 }
 
 private const val IN_TERMINAL_M = 250f
@@ -207,6 +172,7 @@ fun TerminalMap(t: Terminal, level: Int, gate: String?, here: Whereabouts?, modi
     val b = t.bounds
     val g = t.gate(gate)
     val route = t.route(g)
+    val mono = PlexMono
     Canvas(modifier.fillMaxWidth().aspectRatio((b.width / b.height).coerceIn(0.75f, 1.8f)).clip(RoundedCornerShape(10.dp)).background(cs.surfaceVariant)) {
         val k = minOf(size.width / b.width, size.height / b.height)
         val ox = (size.width - b.width * k) / 2 - b.left * k
@@ -235,7 +201,7 @@ fun TerminalMap(t: Terminal, level: Int, gate: String?, here: Whereabouts?, modi
         }
 
         t.gates.values.forEach { drawCircle(cs.onSurfaceVariant.copy(alpha = 0.55f), 2.dp.toPx(), p(it)) }
-        val small = TextStyle(fontFamily = PlexMono, fontSize = 8.sp, color = cs.onSurfaceVariant)
+        val small = TextStyle(fontFamily = mono, fontSize = 8.sp, color = cs.onSurfaceVariant)
         groupEnds(t.gates.keys).forEach { code -> if (code != g) label(tm, code, p(t.gates.getValue(code)) + Offset(0f, -9.dp.toPx()), small) }
 
         if (level == 0 && route != null) {
@@ -251,13 +217,13 @@ fun TerminalMap(t: Terminal, level: Int, gate: String?, here: Whereabouts?, modi
             val c = p(t.at(s.lat, s.lon))
             val bg = if (s.kind == SpotKind.SMOKE) cs.primary else cs.onSurface
             drawRoundRect(bg, c - Offset(8.dp.toPx(), 8.dp.toPx()), Size(16.dp.toPx(), 16.dp.toPx()), CornerRadius(5.dp.toPx()))
-            label(tm, s.kind.glyph, c, TextStyle(fontFamily = PlexMono, fontWeight = FontWeight.Medium, fontSize = 9.sp, color = if (s.kind == SpotKind.SMOKE) cs.onPrimary else cs.surface))
+            label(tm, s.kind.glyph, c, TextStyle(fontFamily = mono, fontWeight = FontWeight.Medium, fontSize = 9.sp, color = if (s.kind == SpotKind.SMOKE) cs.onPrimary else cs.surface))
         }
 
         if (g != null) {
             val c = p(t.gates.getValue(g))
             drawCircle(cs.primary, 13.dp.toPx(), c)
-            label(tm, g, c, TextStyle(fontFamily = PlexMono, fontWeight = FontWeight.Medium, fontSize = if (g.length > 3) 7.5.sp else 9.sp, color = cs.onPrimary))
+            label(tm, g, c, TextStyle(fontFamily = mono, fontWeight = FontWeight.Medium, fontSize = if (g.length > 3) 7.5.sp else 9.sp, color = cs.onPrimary))
         }
         here?.at?.let { at ->
             val c = p(at)
@@ -415,6 +381,7 @@ private fun Budget(phases: List<Phase>, nowMin: Long) {
     val tm = rememberTextMeasurer()
     val start = phases.first().from
     val end = phases.last().to
+    val mono = PlexMono
     Canvas(Modifier.fillMaxWidth().height(30.dp)) {
         val span = (end - start).toFloat()
         val gap = 3.dp.toPx()
@@ -424,7 +391,7 @@ private fun Budget(phases: List<Phase>, nowMin: Long) {
             if (x1 <= x0) return@forEach
             val bg = if (ph.free) cs.primary else cs.surfaceVariant
             drawRoundRect(bg, Offset(x0, 0f), Size(x1 - x0, size.height), CornerRadius(4.dp.toPx()))
-            val r = tm.measure(ph.label.uppercase(), TextStyle(fontFamily = PlexMono, fontSize = 9.sp, letterSpacing = 0.5.sp, color = if (ph.free) cs.onPrimary else cs.onSurfaceVariant))
+            val r = tm.measure(ph.label.uppercase(), TextStyle(fontFamily = mono, fontSize = 9.sp, letterSpacing = 0.5.sp, color = if (ph.free) cs.onPrimary else cs.onSurfaceVariant))
             if (r.size.width < x1 - x0 - 4) drawText(r, topLeft = Offset(x0 + (x1 - x0 - r.size.width) / 2, (size.height - r.size.height) / 2))
         }
         if (nowMin in start..end) {

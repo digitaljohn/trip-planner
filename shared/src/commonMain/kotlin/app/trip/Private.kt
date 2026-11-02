@@ -2,7 +2,7 @@ package app.trip
 
 /** trip.private.* entries from the trip's trip.properties (or local.properties), compiled in so they never sit in the repo. */
 private val private: Map<String, String> by lazy {
-    BuildConfig.TRIP_PRIVATE.lines().mapNotNull { l -> l.indexOf('=').takeIf { it > 0 }?.let { l.substring(0, it) to l.substring(it + 1) } }.toMap()
+    TripBuild.TRIP_PRIVATE.lines().mapNotNull { l -> l.indexOf('=').takeIf { it > 0 }?.let { l.substring(0, it) to l.substring(it + 1) } }.toMap()
 }
 
 /**

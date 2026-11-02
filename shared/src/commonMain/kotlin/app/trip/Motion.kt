@@ -1,8 +1,5 @@
 package app.trip
 
-import android.os.Build
-import android.view.HapticFeedbackConstants
-import android.view.View
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -44,38 +41,17 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.PathParser
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class Haptics(private val view: View) {
-    private fun go(c: Int) { view.performHapticFeedback(c) }
-    fun tap() = go(HapticFeedbackConstants.CONTEXT_CLICK)
-    fun tick() = go(if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.SEGMENT_FREQUENT_TICK else HapticFeedbackConstants.CLOCK_TICK)
-    fun confirm() = go(HapticFeedbackConstants.CONFIRM)
-    fun reject() = go(HapticFeedbackConstants.REJECT)
-    fun toggle(on: Boolean) = go(
-        if (Build.VERSION.SDK_INT >= 34) (if (on) HapticFeedbackConstants.TOGGLE_ON else HapticFeedbackConstants.TOGGLE_OFF)
-        else HapticFeedbackConstants.CONTEXT_CLICK,
-    )
-}
-
-@Composable
-fun rememberHaptics(): Haptics {
-    val view = LocalView.current
-    return remember(view) { Haptics(view) }
-}
-
 /** Copies to the clipboard with a confirm tick. Android shows its own "copied" preview. */
 @Composable
 fun rememberCopy(): (String, String) -> Unit {
-    val ctx = LocalContext.current
     val h = rememberHaptics()
-    return remember(ctx, h) { { label, value -> ctx.copy(label, value); h.confirm() } }
+    return remember(h) { { label, value -> Phone.copy(label, value); h.confirm() } }
 }
 
 /** Fades and lifts a block into place on first appearance; [index] staggers blocks down the page. */

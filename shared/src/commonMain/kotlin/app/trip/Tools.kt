@@ -2,7 +2,6 @@
 
 package app.trip
 
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -12,19 +11,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.ui.draw.rotate
-import java.time.Instant
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import kotlin.time.Clock
+import kotlinx.datetime.offsetAt
 
 private fun money(cur: String, v: Double) = money.symbol(cur) + "%,.2f".format(v)
 
@@ -91,23 +87,24 @@ private fun TimeTool(now: Instant) {
     val cs = MaterialTheme.colorScheme
     val nowSyd = now.atZone(away.zone).toLocalTime()
     var minutes by rememberSaveable { mutableFloatStateOf((nowSyd.hour * 60 + nowSyd.minute).toFloat()) }
-    val syd = LocalTime.of(0, 0).plusMinutes((minutes.roundToInt() / 15 * 15).toLong())
-    val ahead = (away.zone.rules.getOffset(now).totalSeconds - home.zone.rules.getOffset(now).totalSeconds) / 60
-    val lonMin = syd.hour * 60 + syd.minute - ahead
-    val lon = LocalTime.of(0, 0).plusMinutes(((lonMin % 1440 + 1440) % 1440).toLong())
-    val fmt = DateTimeFormatter.ofPattern("HH:mm")
-    val awake = lon.hour in 8..21
+    // Minutes after midnight; the slider stops at 23:45, so the away time never wraps.
+    val syd = minutes.roundToInt() / 15 * 15
+    val ahead = (away.zone.offsetAt(now).totalSeconds - home.zone.offsetAt(now).totalSeconds) / 60
+    val lonMin = syd - ahead
+    val lon = (lonMin % 1440 + 1440) % 1440
+    fun hhmm(m: Int) = "%02d:%02d".format(m / 60, m % 60)
+    val awake = lon / 60 in 8..21
 
     Panel(spacing = 10.dp) {
         Label("${away.name} ↔ ${home.name}")
         Row {
             Column(Modifier.weight(1f)) {
                 Label(away.name)
-                RollingText(fmt.format(syd), MaterialTheme.typography.displayMedium, cs.onSurface)
+                RollingText(hhmm(syd), MaterialTheme.typography.displayMedium, cs.onSurface)
             }
             Column(Modifier.weight(1f)) {
                 Label(home.name + if (lonMin < 0) " · day before" else if (lonMin >= 1440) " · day after" else "")
-                RollingText(fmt.format(lon), MaterialTheme.typography.displayMedium, cs.primary)
+                RollingText(hhmm(lon), MaterialTheme.typography.displayMedium, cs.primary)
             }
         }
         val haptics = rememberHaptics()
@@ -153,12 +150,10 @@ private fun TaxTool(t: TaxRefund, rates: RatesRepo) {
 
 @Composable
 fun InfoScreen(flights: FlightRepo) {
-    val ctx = LocalContext.current
     val copy = rememberCopy()
     val haptics = rememberHaptics()
     val cs = MaterialTheme.colorScheme
-    val prefs = remember { ctx.getSharedPreferences("todo", Context.MODE_PRIVATE) }
-    val done = remember { mutableStateMapOf<String, Boolean>().apply { todos.forEach { put(it.id, prefs.getBoolean(it.id, false)) } } }
+    val done = remember { mutableStateMapOf<String, Boolean>().apply { todos.forEach { put(it.id, isDone(it.id)) } } }
 
     Page {
         item { Heading("Checklist") }
@@ -171,7 +166,7 @@ fun InfoScreen(flights: FlightRepo) {
                 }
                 todos.forEach { t ->
                     val checked = done[t.id] == true
-                    val toggle = { v: Boolean -> haptics.toggle(v); done[t.id] = v; setDone(ctx, t.id, v); TripNotifier.refresh(ctx) }
+                    val toggle = { v: Boolean -> haptics.toggle(v); done[t.id] = v; setDone(t.id, v); Alerts.refresh() }
                     Row(Modifier.fillMaxWidth().clickable { toggle(!checked) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = checked, onCheckedChange = toggle)
                         Column(Modifier.weight(1f)) {
@@ -181,7 +176,7 @@ fun InfoScreen(flights: FlightRepo) {
                             Muted(t.detail)
                         }
                         if (t.id.startsWith("checkin") && !checked) {
-                            TextButton(onClick = { haptics.tap(); ctx.startActivity(TripNotifier.checkInIntent(ctx, preferApp = true)) }) { Text("Check in") }
+                            TextButton(onClick = { haptics.tap(); Phone.openCheckIn(preferApp = true) }) { Text("Check in") }
                         }
                     }
                 }
@@ -219,8 +214,10 @@ fun InfoScreen(flights: FlightRepo) {
                         }
                     }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { haptics.tap(); ctx.openSimSettings() }) { Text("SIM settings") }
-                        e.app?.let { app -> OutlinedButton(onClick = { haptics.tap(); ctx.openApp(app) }) { Text("${e.appName} app") } }
+                        Button(onClick = { haptics.tap(); Phone.openSimSettings() }) { Text("SIM settings") }
+                        e.app?.takeIf { Phone.offersApp(e.iosApp) }?.let { app ->
+                            OutlinedButton(onClick = { haptics.tap(); Phone.openApp(app, e.iosApp) }) { Text("${e.appName} app") }
+                        }
                     }
                     Muted(e.support)
                 }
@@ -234,7 +231,7 @@ fun InfoScreen(flights: FlightRepo) {
                     ListItem(
                         headlineContent = { Text(label) },
                         supportingContent = { Mono(shown, color = cs.onSurfaceVariant, weight = androidx.compose.ui.text.font.FontWeight.Normal) },
-                        trailingContent = { IconButton(onClick = { ctx.dial(number) }) { Icon(Ic.Call, "Call $label", tint = cs.primary) } },
+                        trailingContent = { IconButton(onClick = { Phone.dial(number) }) { Icon(Ic.Call, "Call $label", tint = cs.primary) } },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
                 }
@@ -243,27 +240,22 @@ fun InfoScreen(flights: FlightRepo) {
         item { Muted(CONTACTS_NOTE) }
         item { SubHeading("Notifications") }
         item {
-            var on by remember { mutableStateOf(TripNotifier.enabled(ctx)) }
-            val am = remember { ctx.getSystemService(android.app.AlarmManager::class.java) }
+            var on by remember { mutableStateOf(Alerts.enabled()) }
             Panel(spacing = 10.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Lock-screen status", style = MaterialTheme.typography.titleSmall)
                         Muted("Current leg and countdown to the next step, plus an alert at each airport step.")
                     }
-                    Switch(checked = on, onCheckedChange = { haptics.toggle(it); on = it; TripNotifier.setEnabled(ctx, it) })
+                    Switch(checked = on, onCheckedChange = { haptics.toggle(it); on = it; Alerts.setEnabled(it) })
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { haptics.tap(); TripNotifier.testCheckIn(ctx) }) { Text("Test check-in alert") }
-                    OutlinedButton(onClick = { haptics.tap(); TripNotifier.previewFlightDay(ctx) }) { Text("Preview flight-day card") }
-                    OutlinedButton(onClick = { haptics.tap(); TripWidget.pin(ctx) }) { Text("Add home-screen widget") }
+                    OutlinedButton(onClick = { haptics.tap(); Alerts.testCheckIn() }) { Text("Test check-in alert") }
+                    OutlinedButton(onClick = { haptics.tap(); Alerts.previewFlightDay() }) { Text("Preview flight-day card") }
+                    if (Alerts.widgetHint == null) OutlinedButton(onClick = { haptics.tap(); Alerts.addWidget() }) { Text("Add home-screen widget") }
                 }
-                if (!am.canScheduleExactAlarms()) {
-                    Muted("Alerts may arrive a few minutes late until you allow alarms for this app.")
-                    OutlinedButton(onClick = {
-                        ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, android.net.Uri.parse("package:" + ctx.packageName)))
-                    }) { Text("Allow on-time alerts") }
-                }
+                Alerts.widgetHint?.let { Muted(it) }
+                AlertSettingsExtra()
             }
         }
         item { SubHeading("Live flight data") }
@@ -273,7 +265,7 @@ fun InfoScreen(flights: FlightRepo) {
                     "Gates, delays and baggage belts come from Aviationstack's free plan: ${FlightRepo.LIMIT} lookups a month. " +
                         "The app checks by itself only around the airports, every ${FlightRepo.STALE_MIN} minutes while lookups last and then just before each take-off and after landing. The refresh button checks straight away.",
                 )
-                RefreshButton(flights, TripNotifier.nextWatch(java.time.Instant.now()))
+                RefreshButton(flights, Schedule.nextWatch(Clock.System.now()))
             }
         }
     }
@@ -281,15 +273,14 @@ fun InfoScreen(flights: FlightRepo) {
 
 @Composable
 private fun LoyaltyCard(l: Loyalty) {
-    val ctx = LocalContext.current
     val copy = rememberCopy()
     val haptics = rememberHaptics()
-    val prefs = remember { ctx.getSharedPreferences("club", Context.MODE_PRIVATE) }
-    var avios by remember { mutableIntStateOf(prefs.getInt("avios", l.balance)) }
-    var tp by remember { mutableIntStateOf(prefs.getInt("tp", l.tierBalance)) }
-    var asOf by remember { mutableStateOf(prefs.getString("at", l.asOf)!!) }
+    val prefs = remember { store("club") }
+    var avios by remember { mutableIntStateOf(prefs.int("avios", l.balance)) }
+    var tp by remember { mutableIntStateOf(prefs.int("tp", l.tierBalance)) }
+    var asOf by remember { mutableStateOf(prefs.string("at") ?: l.asOf) }
     var editing by remember { mutableStateOf(false) }
-    val credited = Instant.now().isAfter(RET.plus(java.time.Duration.ofDays(5)))
+    val credited = Clock.System.now().isAfter(RET.plus(Duration.ofDays(5)))
     val afterTp = tp + if (credited) 0 else l.tripTierPoints
     fun n(v: Int) = "%,d".format(v)
     fun k(v: Int) = if (v >= 10_000) "${(v + 500) / 1000}k" else "%.1fk".format(v / 1000f)
@@ -329,9 +320,11 @@ private fun LoyaltyCard(l: Loyalty) {
                 },
             )
         }
-        Muted(listOfNotNull(l.household?.let { "Household ${l.points} ${n(prefs.getInt("household", it))}" }, "balance from $asOf.").joinToString(" · ").replaceFirstChar { it.uppercase() })
+        Muted(listOfNotNull(l.household?.let { "Household ${l.points} ${n(prefs.int("household", it))}" }, "balance from $asOf.").joinToString(" · ").replaceFirstChar { it.uppercase() })
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            l.app?.let { app -> Button(onClick = { haptics.tap(); ctx.openApp(app) }) { Text("Open ${l.short} app") } }
+            l.app?.takeIf { Phone.offersApp(l.iosApp) }?.let { app ->
+                Button(onClick = { haptics.tap(); Phone.openApp(app, l.iosApp) }) { Text("Open ${l.short} app") }
+            }
             OutlinedButton(onClick = { haptics.tap(); editing = true }) { Text("Update balance") }
         }
     }
@@ -354,8 +347,8 @@ private fun LoyaltyCard(l: Loyalty) {
                 TextButton(onClick = {
                     avios = a.toIntOrNull() ?: avios
                     tp = t.toIntOrNull() ?: tp
-                    asOf = DateTimeFormatter.ofPattern("d MMM").format(java.time.LocalDate.now())
-                    prefs.edit().putInt("avios", avios).putInt("tp", tp).putString("at", asOf).apply()
+                    asOf = dayMonth(LocalDate.now())
+                    prefs.put("avios" to avios, "tp" to tp, "at" to asOf)
                     haptics.confirm(); editing = false
                 }) { Text("Save") }
             },

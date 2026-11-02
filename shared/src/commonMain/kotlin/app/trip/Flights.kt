@@ -25,14 +25,13 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlin.time.Clock
 
 @Composable
 fun FlightsScreen(status: Status, flights: FlightRepo) {
-    val ctx = LocalContext.current
     val haptics = rememberHaptics()
     Page {
         item {
@@ -41,13 +40,13 @@ fun FlightsScreen(status: Status, flights: FlightRepo) {
                 Spacer(Modifier.weight(1f))
             }
         }
-        item { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { RefreshButton(flights, TripNotifier.nextWatch(java.time.Instant.now())) } }
+        item { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { RefreshButton(flights, Schedule.nextWatch(Clock.System.now())) } }
         items(journeys) { j -> JourneyCard(j, flights) }
         item { Muted("Times are ${airline.name}'s schedule via Aviationstack, updated live as the day approaches. Gates appear about an hour before boarding.") }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 journeys.forEachIndexed { i, j ->
-                    OutlinedButton(onClick = { ctx.open("https://www.flightradar24.com/data/flights/${j.flight.lowercase()}") }) {
+                    OutlinedButton(onClick = { Phone.open("https://www.flightradar24.com/data/flights/${j.flight.lowercase()}") }) {
                         Text(if (i == 0) "${j.flight} on Flightradar" else j.flight); Spacer(Modifier.width(6.dp)); Icon(Ic.OpenInNew, null, Modifier.size(16.dp))
                     }
                 }

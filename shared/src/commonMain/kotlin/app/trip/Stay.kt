@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -31,12 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.Instant
-import java.time.LocalDate
 
 @Composable
 fun StayScreen(now: Instant, weather: WeatherRepo) {
-    val ctx = LocalContext.current
     val copy = rememberCopy()
     val haptics = rememberHaptics()
     val cs = MaterialTheme.colorScheme
@@ -53,10 +49,10 @@ fun StayScreen(now: Instant, weather: WeatherRepo) {
                     IconButton(onClick = { copy("Hotel confirmation", hotel.confirmation) }) { Icon(Ic.Copy, "Copy confirmation") }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = { ctx.dial(hotel.phone) }) {
+                    FilledTonalButton(onClick = { Phone.dial(hotel.phone) }) {
                         Icon(Ic.Call, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Call")
                     }
-                    OutlinedButton(onClick = { ctx.maps(hotel.mapsQuery) }) {
+                    OutlinedButton(onClick = { Phone.maps(hotel.mapsQuery) }) {
                         Icon(Ic.Directions, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Directions")
                     }
                 }
@@ -78,7 +74,7 @@ fun StayScreen(now: Instant, weather: WeatherRepo) {
                 ListItem(
                     headlineContent = { Text(p.name) },
                     supportingContent = { Text(p.note) },
-                    trailingContent = { IconButton(onClick = { ctx.maps(p.query) }) { Icon(Ic.Directions, "Open in Maps", tint = cs.primary) } },
+                    trailingContent = { IconButton(onClick = { Phone.maps(p.query) }) { Icon(Ic.Directions, "Open in Maps", tint = cs.primary) } },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
             }

@@ -1,7 +1,5 @@
 package app.trip
 
-import java.time.Duration
-import java.time.Instant
 import kotlin.math.abs
 
 data class Step(val base: Instant, val m: Long, val time: String, val title: String, val detail: String = "") {
@@ -45,9 +43,9 @@ fun statusAt(now: Instant, checkedIn: Boolean = false): Status {
         Kind.GROUND -> if (cur != null) { title = cur.title; detail = cur.detail }
         Kind.STAY -> {
             title = AWAY_GREETING
-            detail = "Day ${Duration.between(leg.from, now).toDays() + 1} of ${Duration.between(leg.from, leg.to).toDays()}. Flight home in ${dur(Duration.between(now, RET))}."
+            detail = "Day ${Duration.between(leg.from!!, now).toDays() + 1} of ${Duration.between(leg.from, leg.to!!).toDays()}. Flight home in ${dur(Duration.between(now, RET))}."
         }
-        Kind.AIR -> detail = "$detail Lands in ${dur(Duration.between(now, leg.to))}."
+        Kind.AIR -> detail = "$detail Lands in ${dur(Duration.between(now, leg.to!!))}."
         Kind.PRE -> {
             if (checkedIn) { title = "Checked in"; detail = CHECKED_IN_NOTE }
             detail = "${segments.first().flight} leaves in ${dur(Duration.between(now, OUT))}. $detail"
@@ -60,7 +58,7 @@ fun statusAt(now: Instant, checkedIn: Boolean = false): Status {
 /** The short counter for the lock screen and widget: T−2:13 around flights, the day of the stay, or Home. */
 fun Status.chip(now: Instant): String = when (leg.kind) {
     Kind.PRE -> "T" + clock(Duration.between(OUT, now).toMinutes())
-    Kind.STAY -> "Day ${Duration.between(leg.from, now).toDays() + 1}"
+    Kind.STAY -> "Day ${Duration.between(leg.from!!, now).toDays() + 1}"
     Kind.POST -> "Home"
     else -> "T" + clock(elapsedMin ?: 0)
 }
@@ -99,12 +97,10 @@ fun timeToSlider(t: Instant): Float {
     return k + f.coerceIn(0f, 1f)
 }
 
-fun isDone(ctx: android.content.Context, todo: String) =
-    ctx.getSharedPreferences("todo", android.content.Context.MODE_PRIVATE).getBoolean(todo, false)
+fun isDone(todo: String) = store("todo").bool(todo)
 
-fun setDone(ctx: android.content.Context, todo: String, done: Boolean) =
-    ctx.getSharedPreferences("todo", android.content.Context.MODE_PRIVATE).edit().putBoolean(todo, done).apply()
+fun setDone(todo: String, done: Boolean) = store("todo").put(todo to done)
 
 /** The check-in whose window is open now and not yet marked done. */
-fun openCheckIn(ctx: android.content.Context, now: Instant) =
-    checkIns.firstOrNull { !now.isBefore(it.opens) && now.isBefore(it.departs) && !isDone(ctx, it.todo) }
+fun openCheckIn(now: Instant) =
+    checkIns.firstOrNull { !now.isBefore(it.opens) && now.isBefore(it.departs) && !isDone(it.todo) }
