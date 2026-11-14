@@ -61,7 +61,11 @@ class Money(val code: String, val symbol: String, val homeWord: String, val othe
 /** A sales-tax refund for visitors: the tax is [fraction] of the shelf price, claimable from [minimum] up. */
 class TaxRefund(val name: String, val taxName: String, val fraction: Double, val minimum: Double, val belowNote: String, val claimNote: String)
 
-class Hotel(val name: String, val details: String, val confirmation: String, val phone: String, val mapsQuery: String)
+/** [checkIn] and [checkOut] are needed when the trip has more than one hotel: they decide which one the app shows and when you move. */
+class Hotel(
+    val name: String, val details: String, val confirmation: String, val phone: String, val mapsQuery: String,
+    val checkIn: Instant? = null, val checkOut: Instant? = null,
+)
 
 class Tip(val head: String, val body: String)
 
@@ -109,6 +113,20 @@ class CityMap(
 
 /** Segments by "flight:origin". */
 val segmentByKey: Map<String, Segment> by lazy { segments.associateBy { it.key } }
+
+/** "In  Sun 1 Nov 15:00" and "Out Tue 17 Nov 11:00", local time; empty when the trip doesn't give the times. */
+fun Hotel.times(): List<String> {
+    fun at(t: Instant) = "${dhm(t, away.zone).substringBefore(' ')} ${dayMonth(t.atZone(away.zone).toLocalDate())} ${hm(t, away.zone)}"
+    return listOfNotNull(checkIn?.let { "In  ${at(it)}" }, checkOut?.let { "Out ${at(it)}" })
+}
+
+/** The hotel you're in at [t], or on your way to: the first whose check-out hasn't passed. */
+fun hotelAt(t: Instant): Hotel = hotels.firstOrNull { it.checkOut?.isAfter(t) ?: true } ?: hotels.last()
+
+/** On a moving day (the local date of a later hotel's check-in): the hotel you leave and the one you go to. */
+fun moveOn(t: Instant): Pair<Hotel, Hotel>? = hotels.zipWithNext().firstOrNull { (_, b) ->
+    b.checkIn?.atZone(away.zone)?.toLocalDate() == t.atZone(away.zone).toLocalDate()
+}
 
 /** Each travel day's unbroken run of airport and flight legs, for the flight-day progress bar. */
 val flightDays: List<List<Leg>> by lazy {

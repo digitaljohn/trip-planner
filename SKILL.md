@@ -131,7 +131,9 @@ keeping its structure and doc comments:
 4. **Stops**: a `Stop` per departure airport whose terminal is in `Terminals.kt`. Phases are
    minutes before take-off. If a terminal is missing, offer `skills/add-terminal-map/SKILL.md`
    (that one does change this repo, so say so and get their OK).
-5. **Stay**: `hotel`, `stayCalendar` (from the Monday of the departure week), `stayTips` (jet
+5. **Stay**: `hotels` (one `Hotel` per booking, in order, each with `checkIn`/`checkOut` at the
+   booking's check-in and check-out times; they're shown on the hotel cards and drive the
+   moving-day and check-out-day steps, and are required with more than one hotel), `stayCalendar` (from the Monday of the departure week), `stayTips` (jet
    lag, events on those dates, day trips, calling home), `places` (with Maps queries), `cityMap`
    (redraw for the city with the hotel as the routes' start, or `null`).
 6. **Tools**: `money` (home currency first in `others`), `taxRefund` (or `null`).

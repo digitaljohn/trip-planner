@@ -239,7 +239,10 @@ fun NowScreen(status: Status, now: Instant, preview: Instant?, flights: FlightRe
         }
         checkIn?.let { ci -> item(key = "checkin") { CheckInCard(ci, onDone = { checkedTick++ }) } }
         boarding?.let { s -> item(key = "boarding") { BoardingPassCard(s) } }
-        if (arriving) item(key = "hotel") { HotelCard() }
+        if (arriving) item(key = "hotel") { HotelCard(hotelAt(now), "To the hotel") }
+        if (leg.kind == Kind.STAY) moveOn(now)?.let { (_, b) ->
+            item(key = "move") { HotelCard(b, "Moving to · check-in from ${hm(b.checkIn!!, away.zone)}", confirmation = true) }
+        }
         forecast?.let { d -> item(key = "weather") { WeatherCard(d) } }
         if (stop != null) item(key = "stop") { StopCard(stop, now, stopSeg) { haptics.tap(); mapOpen = true } }
         if (watch != null) item(key = "live") { LiveCard(flights, watch, onMap = if (stop != null) ({ haptics.tap(); mapOpen = true }) else null) }
@@ -475,19 +478,27 @@ private fun BoardingPassCard(s: Segment) {
     }
 }
 
-/** On the way out of the arrival airport: the hotel, with transit directions from wherever you are. */
+/** A hotel to head for, with transit directions from wherever you are: on the way out of the arrival airport, and on a moving day. */
 @Composable
-private fun HotelCard() {
+private fun HotelCard(h: Hotel, label: String, confirmation: Boolean = false) {
     val haptics = rememberHaptics()
+    val copy = rememberCopy()
     Panel(spacing = 10.dp) {
-        Label("To the hotel")
-        Text(hotel.name, style = MaterialTheme.typography.titleMedium)
-        Muted(hotel.details)
+        Label(label)
+        Text(h.name, style = MaterialTheme.typography.titleMedium)
+        Muted(h.details)
+        h.times().forEach { Mono(it, color = MaterialTheme.colorScheme.onSurfaceVariant, weight = FontWeight.Normal) }
+        if (confirmation) Row(verticalAlignment = Alignment.CenterVertically) {
+            Label("Confirmation")
+            Spacer(Modifier.width(8.dp))
+            Mono(h.confirmation, Modifier.weight(1f))
+            IconButton(onClick = { copy("Hotel confirmation", h.confirmation) }) { Icon(Ic.Copy, "Copy confirmation") }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { haptics.tap(); Phone.directions(hotel.mapsQuery) }, Modifier.weight(1f).height(48.dp)) {
+            Button(onClick = { haptics.tap(); Phone.directions(h.mapsQuery) }, Modifier.weight(1f).height(48.dp)) {
                 Icon(Ic.Directions, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Directions")
             }
-            OutlinedButton(onClick = { haptics.tap(); Phone.dial(hotel.phone) }, Modifier.weight(1f).height(48.dp)) {
+            OutlinedButton(onClick = { haptics.tap(); Phone.dial(h.phone) }, Modifier.weight(1f).height(48.dp)) {
                 Icon(Ic.Call, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Call hotel")
             }
         }

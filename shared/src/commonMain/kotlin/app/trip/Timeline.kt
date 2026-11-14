@@ -42,8 +42,20 @@ fun statusAt(now: Instant, checkedIn: Boolean = false): Status {
     when (leg.kind) {
         Kind.GROUND -> if (cur != null) { title = cur.title; detail = cur.detail }
         Kind.STAY -> {
-            title = AWAY_GREETING
-            detail = "Day ${Duration.between(leg.from!!, now).toDays() + 1} of ${Duration.between(leg.from, leg.to!!).toDays()}. Flight home in ${dur(Duration.between(now, RET))}."
+            val move = moveOn(now)?.takeIf { (_, b) -> now.isBefore(b.checkIn!!) }
+            val last = hotels.last().checkOut?.takeIf { now.isBefore(it) && it.atZone(away.zone).toLocalDate() == now.atZone(away.zone).toLocalDate() }
+            if (last != null) {
+                title = "Check-out day"
+                detail = "Check out of ${hotels.last().name} by ${hm(last, away.zone)}. Flight home in ${dur(Duration.between(now, RET))}."
+            } else if (move != null) {
+                val (a, b) = move
+                title = "Moving hotel today"
+                detail = (a.checkOut?.takeIf { now.isBefore(it) }?.let { "Check out of ${a.name} by ${hm(it, away.zone)}, then go to ${b.name}." }
+                    ?: "Head to ${b.name}.") + " Check-in from ${hm(b.checkIn!!, away.zone)}."
+            } else {
+                title = AWAY_GREETING
+                detail = "Day ${Duration.between(leg.from!!, now).toDays() + 1} of ${Duration.between(leg.from, leg.to!!).toDays()}. Flight home in ${dur(Duration.between(now, RET))}."
+            }
         }
         Kind.AIR -> detail = "$detail Lands in ${dur(Duration.between(now, leg.to!!))}."
         Kind.PRE -> {
