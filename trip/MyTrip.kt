@@ -164,9 +164,12 @@ val stops = listOf(
 // ---- the stay ----
 
 // An example trip: the flights are real scheduled services; the traveller, plans and phone numbers are made up.
-val hotel = Hotel(
-    "Hyatt Regency Sydney", "161 Sussex Street · King room · Sun 1 – Sat 14 Nov",
-    confirmation = secret("hotel.confirmation", "00000000"), phone = "+61200000000", mapsQuery = "Hyatt Regency Sydney 161 Sussex Street",
+val hotels = listOf(
+    Hotel(
+        "Hyatt Regency Sydney", "161 Sussex Street · King room",
+        confirmation = secret("hotel.confirmation", "00000000"), phone = "+61200000000", mapsQuery = "Hyatt Regency Sydney 161 Sussex Street",
+        checkIn = Instant.parse("2026-11-01T04:00:00Z"), checkOut = Instant.parse("2026-11-14T00:00:00Z"),
+    ),
 )
 
 val stayCalendar = StayCalendar(
@@ -254,7 +257,7 @@ val references = listOf(
     "BA Executive Club" to secret("loyalty.number", "00000000"),
     "E-ticket" to secret("eticket", "1250000000000"),
     "eVisitor grant" to secret("evisa", "0000000000000"),
-    "Hotel confirmation" to hotel.confirmation,
+    "Hotel confirmation" to hotels[0].confirmation,
     "Hotel loyalty" to secret("hotel.loyalty", "000000000000"),
     "Agency reference" to secret("agency", "XYZ123"),
 )

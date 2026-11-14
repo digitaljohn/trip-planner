@@ -85,6 +85,21 @@ class TripRulesTest {
 
     /** Walks the whole trip every 15 minutes, as the app does, and checks every moment has something to say. */
     @Test
+    fun hotelsFollowOneAnother() {
+        assertTrue(hotels.isNotEmpty(), "the trip needs at least one hotel")
+        if (hotels.size == 1) return
+        hotels.forEach { h ->
+            assertTrue(h.checkIn != null && h.checkOut != null, "with more than one hotel, '${h.name}' needs checkIn and checkOut")
+            assertTrue(h.checkIn!!.isBefore(h.checkOut!!), "'${h.name}' checks out before it checks in")
+        }
+        hotels.zipWithNext().forEach { (a, b) ->
+            assertTrue(!b.checkIn!!.isBefore(a.checkOut!!), "'${b.name}' starts before '${a.name}' ends")
+            assertEquals(a.checkOut!!.atZone(away.zone).toLocalDate(), b.checkIn!!.atZone(away.zone).toLocalDate(),
+                "'${a.name}' and '${b.name}' leave a night with no hotel")
+        }
+    }
+
+    @Test
     fun everyMomentHasSomethingToShow() {
         val start = OUT.minus(Duration.ofDays(2))
         val end = segments.last().arrives.plus(Duration.ofDays(1))

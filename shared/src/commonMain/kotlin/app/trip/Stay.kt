@@ -38,22 +38,27 @@ fun StayScreen(now: Instant, weather: WeatherRepo) {
     val cs = MaterialTheme.colorScheme
     Page {
         item { Heading("Your stay") }
-        item {
-            Panel {
-                Text(hotel.name, style = MaterialTheme.typography.titleLarge)
-                Muted(hotel.details)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Label("Confirmation")
-                    Spacer(Modifier.width(8.dp))
-                    Mono(hotel.confirmation, Modifier.weight(1f))
-                    IconButton(onClick = { copy("Hotel confirmation", hotel.confirmation) }) { Icon(Ic.Copy, "Copy confirmation") }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = { Phone.dial(hotel.phone) }) {
-                        Icon(Ic.Call, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Call")
+        val current = hotelAt(now)
+        hotels.filter { it.checkOut?.isAfter(now) ?: true }.ifEmpty { listOf(hotels.last()) }.forEach { h ->
+            item {
+                Panel {
+                    if (hotels.size > 1) Label(if (h == current) "Your hotel" else "Next", if (h == current) cs.primary else cs.onSurfaceVariant)
+                    Text(h.name, style = MaterialTheme.typography.titleLarge)
+                    Muted(h.details)
+                    h.times().forEach { Mono(it, color = cs.onSurfaceVariant, weight = FontWeight.Normal) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Label("Confirmation")
+                        Spacer(Modifier.width(8.dp))
+                        Mono(h.confirmation, Modifier.weight(1f))
+                        IconButton(onClick = { copy("Hotel confirmation", h.confirmation) }) { Icon(Ic.Copy, "Copy confirmation") }
                     }
-                    OutlinedButton(onClick = { Phone.maps(hotel.mapsQuery) }) {
-                        Icon(Ic.Directions, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Directions")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledTonalButton(onClick = { Phone.dial(h.phone) }) {
+                            Icon(Ic.Call, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Call")
+                        }
+                        OutlinedButton(onClick = { Phone.maps(h.mapsQuery) }) {
+                            Icon(Ic.Directions, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Directions")
+                        }
                     }
                 }
             }
