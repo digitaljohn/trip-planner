@@ -34,7 +34,29 @@ jobs:
         if: failure()
         with:
           name: test-report
-          path: app/build/reports/tests/
+          path: shared/build/reports/tests/
+
+  ios:
+    name: Trip rules on iOS and the iPhone build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0" > /dev/null
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+      - name: Trip-rules tests on iOS (example trip)
+        run: ./gradlew :shared:iosSimulatorArm64Test
+      - name: Build the iPhone app for the simulator
+        run: |
+          xcodebuild -quiet -project iosApp/Trip.xcodeproj -scheme Trip -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath iosApp/build CODE_SIGNING_ALLOWED=NO build
 
   secrets:
     name: No secrets or personal files

@@ -1,11 +1,11 @@
 ---
 name: trip-planner
-description: Build someone a personal Android travel app for a specific trip — live "what to do now" timeline, lock-screen status, flight gates and alerts, terminal maps with GPS, hotel, tools. Use when someone gives travel details (booking emails, flights, hotel, an itinerary) or asks for a trip app, to update their trip, or to put it on their phone. Ask, confirm, build, verify, install, remember.
+description: Build someone a personal travel app (Android or iPhone) for a specific trip — live "what to do now" timeline, lock-screen status, flight gates and alerts, terminal maps with GPS, hotel, tools. Use when someone gives travel details (booking emails, flights, hotel, an itinerary) or asks for a trip app, to update their trip, or to put it on their phone. Ask, confirm, build, verify, install, remember.
 ---
 
 # Trip planner
 
-You turn booking details into an Android app that walks one person through one trip. The app is
+You turn booking details into an app, for Android or iPhone, that walks one person through one trip. The app is
 fixed; the trip is data. You write the data, build, check it, and install it on their phone.
 
 First-time setup is in `install.md`; don't re-run it each session. Paths below are relative to the
@@ -55,13 +55,13 @@ directory containing this file (usually `~/Developer/trip-planner`, symlinked as
 ├── trip.properties    ← app id, app name, private numbers (never shared)
 ├── project.md         ← memory: what's been done, decided, and still open; append each session
 ├── docs/              ← booking PDFs and screenshots used as sources (optional)
-└── out/trip.apk       ← the built app
+└── out/               ← the built app: trip.apk (Android), Trip.app / Trip-iphone.app (iPhone)
 ```
 
 `trip.properties`:
 
 ```
-trip.applicationId=app.trip.sydney2026
+trip.applicationId=app.trip.sydney2026            # also the iPhone bundle id
 trip.appName=Sydney
 trip.private.booking=...
 trip.private.surname=...
@@ -100,6 +100,10 @@ once, in a single message, for what's still missing:
 - Home and destination: city names, time zones.
 - Stay: hotel, address, room, dates, phone, confirmation number.
 - Places they'll go, and anything on their mind (visa, plugs, transport, SIM, loyalty scheme).
+- Their phone: Android or iPhone. For an iPhone, the airline's, loyalty scheme's and eSIM
+  provider's iPhone apps: give each an `iosApp` link that opens the app (its documented URL scheme,
+  else its App Store page on apps.apple.com; looked up, never guessed), or the app buttons are hidden
+  and check-in opens the website.
 
 Look up airport procedures, transit rules, check-in windows, visitor tax refunds and local
 emergency numbers from official sources, and note the source in `project.md`.
@@ -138,8 +142,8 @@ Write `trip.properties` with the app id, name and every personal value.
 
 ### 5. Build and verify
 
-1. `tools/build_trip.sh <trip>` (from this repo). It runs the trip-rules tests first, then
-   builds. Type errors are usually a missing field; a test failure names the leg or flight that
+1. `tools/build_trip.sh <trip>` (from this repo), or `tools/build_trip.sh <trip> --ios` for an
+   iPhone (the simulator build). It runs the trip-rules tests first, then builds. Type errors are usually a missing field; a test failure names the leg or flight that
    breaks a hard rule. Fix the trip, never the test.
 2. Install on a headless emulator (`emulator -avd <name> -no-window`; nothing should pop up on
    their screen): `adb -s emulator-5554 install -r <trip>/out/trip.apk`.
@@ -147,16 +151,26 @@ Write `trip.properties` with the app id, name and every personal value.
    countdown and next step must all read right, and departure legs with a stop must show the
    free-time card in the right local times. Check Flights, Stay, Tools and Info, in light and dark
    (`adb shell cmd uimode night yes|no`). Screenshot with `adb exec-out screencap -p` and look.
+   For an iPhone, do the same on a simulator (`xcrun simctl boot`, `install` the `out/Trip.app`,
+   `xcrun simctl ui <device> appearance dark|light`, `xcrun simctl io <device> screenshot`).
 4. `LEGS=<n> tools/screen_text.sh <trip>/out/trip.apk <trip>/out/screens.txt <applicationId>`
    dumps every screen's text: read it for leftovers from the example (other cities, airlines,
    flight numbers, hotels).
 
 ### 6. Install
 
-Tell them it's ready and ask before installing on their phone. They need USB debugging on
-(Settings → About phone → tap Build number 7 times; then Developer options → USB debugging) and
-the phone plugged in and unlocked. Then `tools/build_trip.sh <trip> --install`, open the app, and
-check the Now screen shows the right moment.
+Tell them it's ready and ask before installing on their phone.
+
+- **Android**: they need USB debugging on (Settings → About phone → tap Build number 7 times; then
+  Developer options → USB debugging) and the phone plugged in and unlocked. Then
+  `tools/build_trip.sh <trip> --install`.
+- **iPhone**: they need a Mac with Xcode, their Apple developer team ID as `ios.team` in
+  `local.properties` (a free Apple ID works, but the app stops opening after 7 days until
+  reinstalled), Developer Mode on (Settings → Privacy & Security), and the phone plugged in and
+  trusted. Then `tools/build_trip.sh <trip> --ios-install`. Tell them to allow notifications and
+  Live Activities when asked, and how to add the widget (home screen → Edit → Add Widget).
+
+Open the app and check the Now screen shows the right moment.
 
 ### 7. Persist
 

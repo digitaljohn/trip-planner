@@ -1,8 +1,10 @@
 # Trip planner: guide for coding agents
 
-An Android app (Kotlin, Jetpack Compose, Material 3) that walks one person through one trip:
-a live "what to do now" screen, a lock-screen Live Update, flight status with gate alerts,
-terminal maps with GPS, the stay, and travel tools. The app is fixed; each trip is data in its own
+An app for Android and iPhone (Kotlin Multiplatform, Compose Multiplatform, Material 3) that walks
+one person through one trip: a live "what to do now" screen, a lock-screen status (Android Live
+Update, iOS Live Activity), flight status with gate alerts, terminal maps with GPS, the stay, and
+travel tools. Both platforms run the same screens and logic from `shared/`; only the system parts
+(notifications, lock screen, widget, links to other apps) are per platform. The app is fixed; each trip is data in its own
 folder outside this repo. This file is for changing the app itself. Planning a trip is `SKILL.md`;
 installing is `install.md`.
 
@@ -11,16 +13,21 @@ installing is `install.md`.
 | Path | What it is |
 |------|------------|
 | `trip/MyTrip.kt` | The worked example trip. Real trips live in their own folder (`<trip>/MyTrip.kt` plus `trip.properties`), built with `-PtripDir=<trip>` or `tools/build_trip.sh`. |
-| `local.properties` | Git-ignored, per machine: SDK path, Aviationstack key. A trip's `trip.properties` adds and overrides (app id, name, `trip.private.*`). |
-| `app/src/main/java/app/trip/TripModel.kt` | The types `MyTrip.kt` is written in, plus values derived from it. |
+| `local.properties` | Git-ignored, per machine: SDK path, Aviationstack key, `ios.team`. A trip's `trip.properties` adds and overrides (app id, name, `trip.private.*`). |
+| `shared/src/commonMain/kotlin/app/trip/TripModel.kt` | The types `MyTrip.kt` is written in, plus values derived from it. |
 | `.../Timeline.kt` | Steps, legs and `statusAt()`: which leg you're in and what to do now. |
+| `.../Schedule.kt` | Which flight to watch and when to look it up, alert moments, and which gate/delay/belt alerts fresh data calls for. |
 | `.../Terminals.kt` | The airport terminals the app can map (spots, routes, notes), keyed by IATA code. |
 | `.../TerminalData.kt` | Generated outlines and gate positions. Don't edit; regenerate with `tools/terminals_from_osm.py`. |
 | `.../Net.kt` | Aviationstack flight status (quota-rationed) and exchange rates. |
-| `.../Notifier.kt` | Lock-screen status, step alerts, check-in alerts, gate/delay/belt alerts, alarms. |
 | `.../Weather.kt` | Open-Meteo forecast for the away city (no key; found by name and time zone). |
-| `.../TripWidget.kt` | Home-screen widget, redrawn on each alarm. |
 | `.../Ui.kt`, `Flights.kt`, `Stay.kt`, `Tools.kt`, `Terminal.kt` | Screens. |
+| `.../Platform.kt` | What each platform supplies (`expect`): storage, HTTP, formatting, other apps (`Phone`), haptics, location, and `Alerts`. |
+| `.../Time.kt` | java.time's names (`Instant`, `Duration`, `LocalDate`, `ZoneId` and their methods) over kotlin.time and kotlinx-datetime, so trips and the engine read the same on both platforms. |
+| `shared/src/androidMain/` | Android's side: `Notifier.kt` (Live Update, step/check-in/gate alerts, alarm chain), `TripWidget.kt`, `MainActivity.kt`, `Platform.android.kt`, resources. |
+| `shared/src/iosMain/` | iOS's side: `IosAlerts.kt` (scheduled notifications, Live Activity state, widget timeline, background refresh), `Platform.ios.kt`. |
+| `app/` | The Android app shell: app id and name only. |
+| `iosApp/` | The iPhone app shell (SwiftUI), the widget extension (home-screen widget and Live Activity), and the Xcode project generated from `project.yml` with `xcodegen`. |
 | `SKILL.md`, `install.md` | The agent skill (plan, build, verify, install a trip) and its first-time setup. |
 | `skills/add-terminal-map/` | Sub-skill: add an airport terminal to the maps. |
 | `tools/` | `build_trip.sh`, the map generator and OSM fetcher, and the screen-text regression check. |
@@ -56,30 +63,43 @@ to departure airports whose terminal exists in `Terminals.kt`.
   app crashes on launch.
 - **The Aviationstack free plan is 100 lookups a month** and is counted in the app. Don't add
   automatic fetches outside `FlightRepo.due()`; the refresh button is the only other spender.
+- **Shared code calls `Clock.System.now()`, not `Instant.now()`.** `kotlin.time.Instant` has a
+  deprecated `now()` member that beats any extension, so `Time.kt` can't map that one.
+- **Android's stores are its old SharedPreferences files** (same names and keys), so an update keeps
+  an installed app's check-ins, balances and cache. Don't rename a `store()` area or key.
+- **The iOS Live Activity and widget are drawn in Swift from JSON** written by `IosAlerts.kt`
+  (`liveState`, `widgetTimeline`); a field renamed on one side must be renamed on the other
+  (`iosApp/Shared/TripActivity.swift`, `iosApp/Widgets/TripWidgets.swift`).
 
 ## Build and run
 
 ```
-tools/build_trip.sh trip                 # the example; JDK 17, signed with the debug key
-tools/build_trip.sh ~/Trips/x --install  # a trip folder, installed on the connected phone
+tools/build_trip.sh trip                     # the example; JDK 17, signed with the debug key
+tools/build_trip.sh ~/Trips/x --install      # a trip folder, installed on the connected Android phone
+tools/build_trip.sh trip --ios               # the iPhone app for the simulator (Xcode)
+tools/build_trip.sh ~/Trips/x --ios-install  # signed with ios.team, installed on the connected iPhone
 ```
 
 `local.properties` needs `sdk.dir`; everything else has a working default (see
 `local.properties.example`). With no keys the app builds and runs with placeholder numbers and no
-live flight data.
+live flight data. The iOS build writes `iosApp/Trip.xcconfig` (git-ignored) with the trip's id, name,
+folder and team; Xcode's "Kotlin" build phase compiles `shared` for it. After editing
+`iosApp/project.yml`, run `xcodegen` in `iosApp/` and commit the regenerated project.
 
 ## Verifying a change
 
 1. `./gradlew testReleaseUnitTest` runs `TripRulesTest` (the hard rules in `SKILL.md`, plus a
-   15-minute walk through the whole trip) against the example, or a trip with `-PtripDir`. CI runs
-   it and builds the example on every PR, and scans history for secrets. Then build; the trip file
-   is type-checked, so most data mistakes stop there.
+   15-minute walk through the whole trip) against the example, or a trip with `-PtripDir`;
+   `:shared:iosSimulatorArm64Test` runs it on iOS. CI runs both, builds both apps, and scans history
+   for secrets. Then build; the trip file is type-checked, so most data mistakes stop there.
 2. Install on an emulator (start it with `-no-window` so nothing pops up on the user's screen).
 3. On Now, turn on **Preview another moment** and tap every leg chip. Each leg should show the
    right title, "Do now" text, countdown and next step; airport legs with a terminal show the
    free-time card. Then check Flights, Stay, Tools and Info.
 4. Check light and dark (`adb shell cmd uimode night yes|no`).
-5. For refactors, prove nothing changed: `tools/screen_text.sh old.apk old.txt`, then the same for
+5. For iOS, the same on a simulator booted with `xcrun simctl boot` (no window opens), with
+   `xcrun simctl ui <device> appearance dark|light`; screenshots with `xcrun simctl io <device> screenshot`.
+6. For refactors, prove nothing changed: `tools/screen_text.sh old.apk old.txt`, then the same for
    the new build, and compare per screen (see the script's header). Differences must be explained.
 
 ## Style

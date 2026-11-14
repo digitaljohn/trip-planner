@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "SydneyTrip"
-include(":app")
+include(":app", ":shared")

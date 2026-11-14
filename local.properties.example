@@ -4,6 +4,9 @@ sdk.dir=/path/to/Android/sdk
 # Free key from https://aviationstack.com/pricing (100 lookups a month). Without it there's no live flight data.
 aviationstack.key=
 
+# iPhone builds on a real phone: your Apple developer team ID (Xcode → Settings → Accounts). Not needed for the simulator.
+# ios.team=
+
 # Optional: the trip folder to build when no -PtripDir is given (defaults to the example in trip/).
 # trip.dir=/Users/you/Trips/sydney-2026
 
